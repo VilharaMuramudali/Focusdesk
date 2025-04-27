@@ -1,0 +1,175 @@
+.navbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff;
+  color: #333;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  transition: 0.3s all ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  &.active {
+    background-color: white;
+    color: #333;
+  }
+
+  .container {
+    width: 1400px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 0px;
+
+    .logo {
+      font-size: 22px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+
+      .text {
+        margin-left: 8px;
+        color: #333;
+      }
+      
+      &::before {
+        content: "";
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        background-color: #4361ee;
+        border-radius: 4px;
+      }
+    }
+    
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      font-family: "Inter", sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+      margin-left: 40px;
+      
+      .link {
+        color: #333;
+        text-decoration: none;
+        
+        &:hover {
+          color: #4361ee;
+        }
+      }
+      
+      .dropdown-link {
+        position: relative;
+        
+        &::after {
+          content: "▼";
+          font-size: 8px;
+          margin-left: 5px;
+          display: inline-block;
+          vertical-align: middle;
+        }
+      }
+    }
+
+    .auth-buttons {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      
+      .login-link {
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+        
+        &:hover {
+          color: #4361ee;
+        }
+      }
+      
+      .register-button button {
+        background-color: #4361ee;
+        color: white;
+        padding: 10px 24px;
+        border-radius: 50px;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background-color: #3651d4;
+          transform: translateY(-2px);
+        }
+      }
+    }
+
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      position: relative;
+
+      img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      
+      .avatar-placeholder {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #4361ee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+      }
+
+      .options {
+        position: absolute;
+        top: 50px;
+        right: 0;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        z-index: 999;
+        border: 1px solid lightgrey;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 200px;
+        font-weight: 300;
+        color: gray;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        
+        .link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #333;
+          text-decoration: none;
+          padding: 8px 0;
+          
+          &:hover {
+            color: #4361ee;
+          }
+          
+          &.logout {
+            color: #ff3b30;
+            cursor: pointer;
+            
+            &:hover {
+              color: #e6352b;
+            }
+          }
+        }
+      }
+    }
+  }
+}

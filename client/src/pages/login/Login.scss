@@ -1,0 +1,184 @@
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  
+  .login-card {
+    width: 100%;
+    max-width: 450px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    
+    .login-header {
+      padding: 2rem;
+      text-align: center;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #eaeaea;
+      
+      h1 {
+        color: #333;
+        margin-bottom: 0.5rem;
+        font-size: 1.8rem;
+      }
+      
+      p {
+        color: #666;
+        font-size: 1rem;
+      }
+    }
+    
+    .success-message {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      padding: 1rem;
+      margin: 1rem 2rem 0;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .error-message {
+      background-color: #ffebee;
+      color: #d32f2f;
+      padding: 1rem;
+      margin: 1rem 2rem 0;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    form {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        
+        label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #555;
+          font-size: 0.9rem;
+          font-weight: 500;
+          
+          svg {
+            color: #2196f3;
+          }
+        }
+        
+        input {
+          padding: 0.75rem;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 1rem;
+          transition: border-color 0.3s, box-shadow 0.3s;
+          
+          &:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+          }
+        }
+      }
+      
+      .forgot-password {
+        text-align: right;
+        margin-top: -0.5rem;
+        
+        a {
+          color: #2196f3;
+          font-size: 0.85rem;
+          text-decoration: none;
+          
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+      
+      .login-button {
+        margin-top: 1rem;
+        padding: 0.75rem 1.5rem;
+        background-color: #2196f3;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        
+        &:hover {
+          background-color: #1976d2;
+        }
+        
+        &:disabled {
+          background-color: #90caf9;
+          cursor: not-allowed;
+        }
+        
+        svg {
+          font-size: 1.1rem;
+        }
+      }
+    }
+    
+    .login-footer {
+      padding: 1.5rem 2rem;
+      text-align: center;
+      border-top: 1px solid #eaeaea;
+      background-color: #f8f9fa;
+      
+      p {
+        color: #666;
+        font-size: 0.9rem;
+        
+        a {
+          color: #2196f3;
+          text-decoration: none;
+          font-weight: 500;
+          
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 1rem;
+    
+    .login-card {
+      .login-header {
+        padding: 1.5rem;
+        
+        h1 {
+          font-size: 1.5rem;
+        }
+      }
+      
+      form {
+        padding: 1.5rem;
+      }
+      
+      .login-footer {
+        padding: 1rem 1.5rem;
+      }
+    }
+  }
+}

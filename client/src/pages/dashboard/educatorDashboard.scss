@@ -1,0 +1,228 @@
+.educator-dashboard {
+  font-family: 'Poppins', sans-serif;
+  background: #f7f8fa;
+  min-height: 100vh;
+
+  .ed-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+    .ed-navbar-logo {
+      font-weight: 700;
+      color: #ff9721;
+      font-size: 1.3rem;
+    }
+    ul {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      li {
+        cursor: pointer;
+        color: #666;
+        font-weight: 500;
+        padding: 0.5rem 0;
+        border-bottom: 2px solid transparent;
+        transition: color 0.2s, border-color 0.2s;
+        &.active, &:hover {
+          color: #ff9721;
+          border-bottom: 2px solid #ff9721;
+        }
+      }
+    }
+    .ed-navbar-user {
+      background: #fdf3e3;
+      color: #ff9721;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+  }
+
+  .ed-profile {
+    max-width: 900px;
+    margin: 2rem auto;
+    .ed-profile-main {
+      display: flex;
+      gap: 2rem;
+      background: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 2rem;
+      .ed-profile-pic {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        img, svg {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: #fdf3e3;
+        }
+        label {
+          margin-top: 0.5rem;
+        }
+      }
+      .ed-profile-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        .ed-input {
+          border: 1px solid #eee;
+          border-radius: 5px;
+          padding: 0.5rem 1rem;
+          font-size: 1rem;
+          background: #f7f8fa;
+          &.big { font-size: 1.2rem; font-weight: 600; }
+          &.small { width: 120px; }
+        }
+        .ed-profile-row {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+          .star { color: #ff9721; }
+        }
+      }
+    }
+    .ed-btn {
+      background: #ff9721;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 0.5rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      &.small { font-size: 0.9rem; padding: 0.3rem 0.8rem; }
+      &.tiny { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
+    }
+    .ed-packages {
+      background: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      h3 { margin-bottom: 1rem; }
+      .ed-package-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        .ed-input { flex: 1 1 180px; }
+      }
+      .ed-package-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        .ed-package-card {
+          background: #f7f8fa;
+          border-radius: 8px;
+          padding: 1rem;
+          min-width: 220px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          img, svg { width: 60px; height: 60px; border-radius: 8px; background: #fdf3e3; }
+          h4 { margin: 0.5rem 0 0.2rem; }
+          .ed-package-meta {
+            font-size: 0.9rem;
+            color: #888;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+          }
+        }
+      }
+    }
+  }
+
+  .ed-schedules {
+    max-width: 900px;
+    margin: 2rem auto;
+    h3 { margin: 2rem 0 1rem 0; }
+    .ed-schedule-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      .ed-schedule-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        .ed-btn { margin-left: 0.5rem; }
+        .ed-history-status {
+          color: #2196f3;
+          font-weight: 600;
+        }
+      }
+    }
+    .ed-calendar {
+      margin-top: 1rem;
+      .ed-calendar-slot {
+        display: inline-block;
+        background: #ff9721;
+        color: #fff;
+        border-radius: 20px;
+        padding: 0.3rem 1rem;
+        margin: 0.2rem 0.5rem 0.2rem 0;
+        font-size: 0.95rem;
+      }
+    }
+  }
+
+  .ed-payments {
+    max-width: 900px;
+    margin: 2rem auto;
+    .ed-balance {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      h3 { margin-bottom: 0.5rem; }
+      .ed-balance-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2196f3;
+      }
+    }
+    .ed-payment-list {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      .ed-payment-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 1rem;
+        &:last-child { border-bottom: none; }
+      }
+    }
+    .ed-transaction-details {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      font-size: 1rem;
+      p { margin: 0.3rem 0; }
+    }
+  }
+}

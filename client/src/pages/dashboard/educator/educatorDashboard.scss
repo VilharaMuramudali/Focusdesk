@@ -1,0 +1,29 @@
+.educator-dashboard {
+  display: flex;
+  
+  
+  .ed-content {
+    width: 100%;
+    
+    .ed-profile, .ed-packages, .ed-schedules, .ed-payments, .ed-settings, .ed-tools {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      color: #2196f3;
+      font-weight: 500;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .ed-content {
+      margin-left: 60px;
+      width: calc(100% - 60px);
+    }
+  }
+}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { FaStar, FaArrowLeft, FaCalendarAlt, FaClock, FaUser } from "react-icons/fa";
-import newRequest from "../../utils/newRequest";
+import { FaStar, FaStarHalfAlt, FaRegStar, FaArrowLeft, FaCalendarAlt, FaClock, FaUser, FaLanguage, FaVideo, FaGraduationCap } from "react-icons/fa";
+import newRequest from "../../../utils/newRequest";
 import "./packageDetail.scss";
-import Footer from "../../components/footer/Footer";
+import Footer from "../../../components/footer/Footer";
 
 function PackageDetail() {
   const { id } = useParams();
@@ -11,20 +11,20 @@ function PackageDetail() {
   const [educator, setEducator] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     const fetchPackageData = async () => {
       try {
         setLoading(true);
         const response = await newRequest.get(`/packages/${id}`);
         setPackageData(response.data);
-        
+
         // Fetch educator details
         if (response.data.educatorId) {
           const educatorResponse = await newRequest.get(`/users/${response.data.educatorId}`);
           setEducator(educatorResponse.data);
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error("Error fetching package details:", err);
@@ -32,19 +32,38 @@ function PackageDetail() {
         setLoading(false);
       }
     };
-    
+
     fetchPackageData();
   }, [id]);
-  
+
   const handleBookSession = () => {
     // Implement booking functionality
     alert("Booking functionality will be implemented here");
   };
-  
+
+  // Rating stars component
+  const RatingStars = ({ rating = 4.8 }) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    for (let i = 1; i <= 5; i++) {
+      if (i <= fullStars) {
+        stars.push(<FaStar key={i} className="star filled" />);
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        stars.push(<FaStarHalfAlt key={i} className="star half" />);
+      } else {
+        stars.push(<FaRegStar key={i} className="star empty" />);
+      }
+    }
+    
+    return <div className="rating-stars">{stars} <span className="rating-value">({rating})</span></div>;
+  };
+
   if (loading) {
     return <div className="loading-container">Loading package details...</div>;
   }
-  
+
   if (error || !packageData) {
     return (
       <div className="error-container">
@@ -55,7 +74,7 @@ function PackageDetail() {
       </div>
     );
   }
-  
+
   return (
     <div className="package-detail-page">
       <div className="package-detail-container">
@@ -64,16 +83,17 @@ function PackageDetail() {
             <FaArrowLeft /> Back to Dashboard
           </Link>
         </div>
-        
+
         <div className="package-header">
           <h1>{packageData.title}</h1>
+          <RatingStars rating={packageData.rating || 4.8} />
           <div className="package-meta">
             {packageData.keywords && packageData.keywords.map((keyword, index) => (
               <span key={index} className="keyword-badge">{keyword}</span>
             ))}
           </div>
         </div>
-        
+
         <div className="package-content">
           <div className="package-main">
             {packageData.thumbnail ? (
@@ -83,11 +103,11 @@ function PackageDetail() {
                 <FaUser size={60} />
               </div>
             )}
-            
+
             <div className="package-description">
               <h2>About this Learning Package</h2>
               <p>{packageData.description}</p>
-              
+
               <div className="package-details">
                 <div className="detail-item">
                   <FaCalendarAlt />
@@ -97,27 +117,44 @@ function PackageDetail() {
                   <FaClock />
                   <span>Approximately 1 hour per session</span>
                 </div>
+                {packageData.languages && packageData.languages.length > 0 && (
+                  <div className="detail-item">
+                    <FaLanguage />
+                    <span>Languages: {packageData.languages.join(", ")}</span>
+                  </div>
+                )}
               </div>
-              
+
               {packageData.video && (
                 <div className="package-video">
-                  <h3>Introduction Video</h3>
+                  <h3><FaVideo /> Introduction Video</h3>
                   <a href={packageData.video} target="_blank" rel="noopener noreferrer" className="video-link">
                     Watch Introduction Video
                   </a>
                 </div>
               )}
+              
+              {packageData.languages && packageData.languages.length > 0 && (
+                <div className="package-languages">
+                  <h3><FaLanguage /> Available Languages</h3>
+                  <div className="language-tags">
+                    {packageData.languages.map((language, index) => (
+                      <span key={index} className="language-tag">{language}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          
+
           <div className="package-sidebar">
             <div className="price-card">
-              <h3>${packageData.rate}/hr</h3>
+              <h3>Rs.{packageData.rate}/hr</h3>
               <button className="book-button" onClick={handleBookSession}>
                 Book This Package
               </button>
             </div>
-            
+
             {educator && (
               <div className="educator-card">
                 <h3>About the Educator</h3>
@@ -139,6 +176,18 @@ function PackageDetail() {
                 </Link>
               </div>
             )}
+            
+            <div className="package-summary-card">
+              <h3>Package Summary</h3>
+              <ul className="summary-list">
+                <li><strong>Rate:</strong> Rs.{packageData.rate}/hr</li>
+                <li><strong>Sessions:</strong> {packageData.sessions || 1}</li>
+                {packageData.languages && packageData.languages.length > 0 && (
+                  <li><strong>Languages:</strong> {packageData.languages.join(", ")}</li>
+                )}
+                <li><strong>Sample Video:</strong> {packageData.video ? "Available" : "Not available"}</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>

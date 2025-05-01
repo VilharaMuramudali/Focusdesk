@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook, 
+  FaChevronLeft, FaChevronRight, FaSignOutAlt, FaCaretDown, FaCog, FaUserCircle } from "react-icons/fa";
 import "./studentDashboard.scss";
-import Footer from "../../components/footer/Footer";
-import newRequest from "../../utils/newRequest";
+import Footer from "../../../components/footer/Footer";
+import newRequest from "../../../utils/newRequest";
 
 function StudentDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -12,13 +13,18 @@ function StudentDashboard() {
     subject: "all",
     priceRange: "all",
     academicLevel: "all",
-    language: "all" // Added language filter
+    language: "all"
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const packagesPerPage = 12;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     // Get user data from localStorage
@@ -29,6 +35,18 @@ function StudentDashboard() {
     
     // Fetch packages from backend
     fetchPackages();
+
+    // Close user menu when clicking outside
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const fetchPackages = async () => {
@@ -46,7 +64,7 @@ function StudentDashboard() {
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (e) => {
@@ -55,8 +73,46 @@ function StudentDashboard() {
       ...filters,
       [name]: value
     });
-    setCurrentPage(1); // Reset to first page on filter change
+    setCurrentPage(1);
   };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+
+  const handleLogout = () => {
+    const confirmLogout = window.confirm("Are you sure you want to log out?");
+    
+    if (confirmLogout) {
+      setIsLoggingOut(true);
+      
+      // Clear user data from localStorage
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("accessToken");
+      
+      // Broadcast logout event to other tabs
+      localStorage.setItem("logoutEvent", Date.now().toString());
+      
+      // Navigate to login page
+      navigate("/", { state: { from: location } });
+    }
+  };
+
+  // Listen for logout events from other tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "logoutEvent" || e.key === "accessToken" && e.newValue === null) {
+        // Another tab logged out, log out this tab too
+        setCurrentUser(null);
+        navigate("/login");
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [navigate]);
 
   // Filter packages based on search and filters
   const filteredPackages = packages.filter(pkg => {
@@ -138,6 +194,10 @@ function StudentDashboard() {
     return <div className="loading-container">Loading packages...</div>;
   }
 
+  if (isLoggingOut) {
+    return <div className="loading-container">Logging out...</div>;
+  }
+
   return (
     <div className="student-dashboard">
       {/* Student Navigation Bar */}
@@ -156,13 +216,36 @@ function StudentDashboard() {
           </ul>
         </div>
         <div className="nav-right">
-          <div className="user-account">
-            {currentUser.img ? (
-              <img src={currentUser.img} alt="Profile" className="user-avatar" />
-            ) : (
-              <div className="user-avatar-placeholder"><FaUser /></div>
+          <div className="user-account" ref={userMenuRef}>
+            <div className="user-profile" onClick={toggleUserMenu}>
+              {currentUser.img ? (
+                <img src={currentUser.img} alt="Profile" className="user-avatar" />
+              ) : (
+                <div className="user-avatar-placeholder"><FaUser /></div>
+              )}
+              <span className="user-name">{currentUser.username}</span>
+              <FaCaretDown className="dropdown-icon" />
+            </div>
+            
+            {showUserMenu && (
+              <div className="user-dropdown">
+                <div className="dropdown-header">
+                  <span>Signed in as</span>
+                  <strong>{currentUser.username}</strong>
+                </div>
+                <div className="dropdown-divider"></div>
+                <Link to="/profile" className="dropdown-item">
+                  <FaUserCircle /> Your Profile
+                </Link>
+                <Link to="/settings" className="dropdown-item">
+                  <FaCog /> Settings
+                </Link>
+                <div className="dropdown-divider"></div>
+                <button className="dropdown-item logout-btn" onClick={handleLogout}>
+                  <FaSignOutAlt /> Sign Out
+                </button>
+              </div>
             )}
-            <span className="user-name">{currentUser.username}</span>
           </div>
         </div>
       </div>

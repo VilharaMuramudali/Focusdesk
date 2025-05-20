@@ -323,18 +323,18 @@ function StudentDashboard() {
                 <div className="tutor-card" key={pkg._id}>
                   <div className="tutor-image">
                     {pkg.thumbnail ? (
-                      <img src={pkg.thumbnail} alt={pkg.title} />
+                      <img src={pkg.thumbnail} alt={pkg.title} className="package-thumbnail" />
                     ) : (
                       <div className="placeholder-thumbnail">
                         <FaBook size={40} />
                       </div>
                     )}
                   </div>
-                  <div className="tutor-topic">
+                  {/* <div className="tutor-topic">
                     {pkg.keywords && pkg.keywords.length > 0 
                       ? pkg.keywords.join(", ") 
                       : "General"}
-                  </div>
+                  </div> */}
                   <h3 className="tutor-name">{pkg.title}</h3>
                   <RatingStars rating={pkg.rating || 5} />
                   <p className="tutor-description">{pkg.description}</p>

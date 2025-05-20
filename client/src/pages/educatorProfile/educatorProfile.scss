@@ -1,0 +1,77 @@
+.educator-profile-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  
+    .back-navigation {
+      margin-bottom: 16px;
+    }
+    .profile-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 32px;
+      margin-bottom: 32px;
+      .profile-image-section {
+        flex-shrink: 0;
+        .profile-image, .profile-image-placeholder {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          background: #f4f4f4;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 48px;
+          object-fit: cover;
+        }
+      }
+      .profile-info-section {
+        flex: 1;
+        h1 { margin: 0 0 8px 0; font-size: 2rem; }
+        .rating-stars { margin-bottom: 8px; }
+        .profile-bio { margin-bottom: 8px; color: #444; }
+        .profile-qualifications, .profile-languages, .profile-video {
+          margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #555;
+        }
+      }
+    }
+    .profile-details {
+      h2 { margin-top: 24px; }
+      .subjects-list, .packages-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .subject-badge {
+        background: #e6f7ff;
+        color: #0077b6;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+      }
+      .package-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        width: 100%;
+        .package-title { font-weight: 600; font-size: 1.1rem; }
+        .package-meta { font-size: 0.95rem; margin: 6px 0; color: #666; }
+        .package-description { color: #444; margin-bottom: 6px; }
+        .view-package-link {
+          color: #0077b6;
+          text-decoration: underline;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+  

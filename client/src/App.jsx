@@ -11,6 +11,7 @@ import Orders from "./pages/orders/Orders";
 import Messages from "./pages/messages/Messages";
 import Message from "./pages/message/Message";
 import MyGigs from "./pages/myGigs/MyGigs";
+import EducatorProfile from "./pages/educatorProfile/EducatorProfile";
 import StudentDashboard from "./pages/dashboard/student/StudentDashboard";
 import EducatorDashboard from "./pages/dashboard/educator/EducatorDashboard";
 import PackageDetail from "./pages/dashboard/student/packageDetail";
@@ -98,6 +99,10 @@ function App() {
         {
           path: "/package/:id",
           element: <PackageDetail />,
+        },
+        {
+          path: "/educator/:educatorId",
+          element: <EducatorProfile />,
         },
       ],
     },

@@ -554,3 +554,197 @@
   font-size: 1.2rem;
   color: #666;
 }
+
+.student-sidebar {
+  width: 240px;
+  background: #ffffff;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 134, 244, 0.2);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+
+  .student-sidebar-logo {
+    font-weight: 700;
+    color: #2196f3;
+    font-size: 1.3rem;
+    padding: 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .student-sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+
+    .student-sidebar-item {
+      display: flex;
+      align-items: center;
+      padding: 0.8rem 1.5rem;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 0.5rem;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+
+      .student-sidebar-icon {
+        margin-right: 0.8rem;
+        font-size: 1.2rem;
+        color: #666;
+      }
+
+      .student-sidebar-label {
+        font-size: 0.95rem;
+      }
+
+      &:hover {
+        background: #f5f7fa;
+        color: #2196f3;
+
+        .student-sidebar-icon {
+          color: #2196f3;
+        }
+      }
+
+      &.active {
+        background: #e3f2fd;
+        color: #2196f3;
+        border-left: 3px solid #2196f3;
+
+        .student-sidebar-icon {
+          color: #2196f3;
+        }
+      }
+    }
+  }
+
+  .student-sidebar-logout {
+    margin-top: auto;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-top: 1px solid #f0f0f0;
+
+    .student-sidebar-icon {
+      margin-right: 0.8rem;
+      font-size: 1.2rem;
+      color: #666;
+    }
+
+    .student-sidebar-label {
+      font-size: 0.95rem;
+    }
+
+    &:hover {
+      background: #f5f7fa;
+      color: #2196f3;
+
+      .student-sidebar-icon {
+        color: #2196f3;
+      }
+    }
+  }
+}
+
+.student-sidebar-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem 1rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  background: #f9f9f9;
+
+  .student-sidebar-user-label {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.2rem;
+  }
+  .student-sidebar-username {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2196f3;
+    word-break: break-all;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-sidebar-user {
+    padding: 0.5rem 0 1rem 0;
+    .student-sidebar-user-label, .student-sidebar-username {
+      font-size: 0.7rem;
+      text-align: center;
+    }
+    .student-sidebar-username {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .student-sidebar {
+    width: 60px;
+    overflow: hidden;
+
+    .student-sidebar-logo {
+      font-size: 0;
+      padding: 1.5rem 0;
+      text-align: center;
+
+      &:before {
+        content: "F";
+        font-size: 1.3rem;
+      }
+    }
+
+    .student-sidebar-menu {
+      .student-sidebar-item {
+        padding: 0.8rem;
+        justify-content: center;
+
+        .student-sidebar-label {
+          display: none;
+        }
+
+        .student-sidebar-icon {
+          margin-right: 0;
+          font-size: 1.4rem;
+        }
+      }
+    }
+
+    .student-sidebar-logout {
+      padding: 0.8rem;
+      justify-content: center;
+
+      .student-sidebar-label {
+        display: none;
+      }
+
+      .student-sidebar-icon {
+        margin-right: 0;
+        font-size: 1.4rem;
+      }
+    }
+  }
+
+  .student-dashboard-content {
+    margin-left: 60px;
+    width: calc(100% - 60px);
+  }
+}
+
+// Main content area adjustment for sidebar
+.student-dashboard-content {
+  margin-left: 240px;
+  width: calc(100% - 240px);
+  transition: margin-left 0.3s, width 0.3s;
+}

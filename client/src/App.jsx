@@ -93,6 +93,34 @@ function App() {
           element: <StudentDashboard />,
         },
         {
+          path: "/find-tutors",
+          element: <StudentDashboard />,
+        },
+        {
+          path: "/my-sessions",
+          element: <StudentDashboard />,
+        },
+        {
+          path: "/learning-progress",
+          element: <StudentDashboard />,
+        },
+        {
+          path: "/my-learning",
+          element: <StudentDashboard />,
+        },
+        {
+          path: "/messages",
+          element: <StudentDashboard />,
+        },
+        {
+          path: "/payments",
+          element: <StudentDashboard />,
+        },
+        {
+          path: "/settings",
+          element: <StudentDashboard />,
+        },
+        {
           path: "/educator-dashboard",
           element: <EducatorDashboard />,
         },

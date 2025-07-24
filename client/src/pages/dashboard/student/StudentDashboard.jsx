@@ -5,6 +5,15 @@ import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook,
 import "./studentDashboard.scss";
 import Footer from "../../../components/footer/Footer";
 import newRequest from "../../../utils/newRequest";
+import StudentSidebar from "./StudentSidebar";
+import FindTutors from "./FindTutors";
+import MySessions from "./MySessions";
+import LearningProgress from "./LearningProgress";
+import MyLearning from "./MyLearning";
+import Messages from "./Messages";
+import Payments from "./Payments";
+import Settings from "./Settings";
+import HomeOverview from "./HomeOverview";
 
 function StudentDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -200,189 +209,155 @@ function StudentDashboard() {
 
   return (
     <div className="student-dashboard">
-      {/* Student Navigation Bar */}
-      <div className="student-nav">
-        <div className="nav-left">
-          <h2>FocusDesk</h2>
-        </div>
-        <div className="nav-center">
-          <ul className="nav-links">
-            <li className="nav-item active">
-              <Link to="/student-dashboard"><FaHome /> Home</Link>
-            </li>
-            <li className="nav-item">
-              <Link to="/my-learning"><FaBook /> My Learning</Link>
-            </li>
-          </ul>
-        </div>
-        <div className="nav-right">
-          <div className="user-account" ref={userMenuRef}>
-            <div className="user-profile" onClick={toggleUserMenu}>
-              {currentUser.img ? (
-                <img src={currentUser.img} alt="Profile" className="user-avatar" />
-              ) : (
-                <div className="user-avatar-placeholder"><FaUser /></div>
-              )}
-              <span className="user-name">{currentUser.username}</span>
-              <FaCaretDown className="dropdown-icon" />
-            </div>
-            
-            {showUserMenu && (
-              <div className="user-dropdown">
-                <div className="dropdown-header">
-                  <span>Signed in as</span>
-                  <strong>{currentUser.username}</strong>
-                </div>
-                <div className="dropdown-divider"></div>
-                <Link to="/profile" className="dropdown-item">
-                  <FaUserCircle /> Your Profile
-                </Link>
-                <Link to="/settings" className="dropdown-item">
-                  <FaCog /> Settings
-                </Link>
-                <div className="dropdown-divider"></div>
-                <button className="dropdown-item logout-btn" onClick={handleLogout}>
-                  <FaSignOutAlt /> Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filters Section */}
-      <div className="search-section">
-        <div className="search-container">
-          <div className="search-bar">
-            <FaSearch className="search-icon" />
-            <input 
-              type="text" 
-              placeholder="Search for learning packages, topics, or subjects..." 
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </div>
-          <div className="filters">
-            <div className="filter-group">
-              <label>Subject</label>
-              <select name="subject" value={filters.subject} onChange={handleFilterChange}>
-                <option value="all">All Subjects</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="Physics">Physics</option>
-                <option value="Chemistry">Chemistry</option>
-                <option value="Biology">Biology</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="Literature">Literature</option>
-                <option value="History">History</option>
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Price Range</label>
-              <select name="priceRange" value={filters.priceRange} onChange={handleFilterChange}>
-                <option value="all">All Prices</option>
-                <option value="under30">Under $30</option>
-                <option value="30to40">$30 - $40</option>
-                <option value="over40">Over $40</option>
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Academic Level</label>
-              <select name="academicLevel" value={filters.academicLevel} onChange={handleFilterChange}>
-                <option value="all">All Levels</option>
-                <option value="highschool">High School</option>
-                <option value="university">University</option>
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Language</label>
-              <select name="language" value={filters.language} onChange={handleFilterChange}>
-                <option value="all">All Languages</option>
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Mandarin">Mandarin</option>
-                <option value="Korean">Korean</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Packages Grid */}
-      <div className="tutors-section">
-        <div className="section-header">
-          <h2>Available Learning Packages</h2>
-          <div className="results-info">
-            Showing {indexOfFirstPackage + 1}-{Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results
-          </div>
-        </div>
-
-        {filteredPackages.length > 0 ? (
+      <StudentSidebar onLogout={handleLogout} username={currentUser?.username} />
+      <div className="student-dashboard-content">
+        {location.pathname === "/student-dashboard" ? (
+          <HomeOverview />
+        ) : location.pathname === "/find-tutors" ? (
           <>
-            <div className="tutors-grid">
-              {currentPackages.map(pkg => (
-                <div className="tutor-card" key={pkg._id}>
-                  <div className="tutor-image">
-                    {pkg.thumbnail ? (
-                      <img src={pkg.thumbnail} alt={pkg.title} className="package-thumbnail" />
-                    ) : (
-                      <div className="placeholder-thumbnail">
-                        <FaBook size={40} />
-                      </div>
-                    )}
+            {/* Search and Filters Section */}
+            <div className="search-section">
+              <div className="search-container">
+                <div className="search-bar">
+                  <FaSearch className="search-icon" />
+                  <input 
+                    type="text" 
+                    placeholder="Search for learning packages, topics, or subjects..." 
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+                <div className="filters">
+                  <div className="filter-group">
+                    <label>Subject</label>
+                    <select name="subject" value={filters.subject} onChange={handleFilterChange}>
+                      <option value="all">All Subjects</option>
+                      <option value="Mathematics">Mathematics</option>
+                      <option value="Physics">Physics</option>
+                      <option value="Chemistry">Chemistry</option>
+                      <option value="Biology">Biology</option>
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Literature">Literature</option>
+                      <option value="History">History</option>
+                    </select>
                   </div>
-                  {/* <div className="tutor-topic">
-                    {pkg.keywords && pkg.keywords.length > 0 
-                      ? pkg.keywords.join(", ") 
-                      : "General"}
-                  </div> */}
-                  <h3 className="tutor-name">{pkg.title}</h3>
-                  <RatingStars rating={pkg.rating || 5} />
-                  <p className="tutor-description">{pkg.description}</p>
-                  <div className="package-meta">
-                    <span className="sessions-badge">{pkg.sessions || 1} session(s)</span>
-                    {pkg.academicLevel && (
-                      <span className="level-badge">{pkg.academicLevel}</span>
-                    )}
-                    {pkg.language && (
-                      <span className="language-badge">{pkg.language}</span>
-                    )}
+                  <div className="filter-group">
+                    <label>Price Range</label>
+                    <select name="priceRange" value={filters.priceRange} onChange={handleFilterChange}>
+                      <option value="all">All Prices</option>
+                      <option value="under30">Under $30</option>
+                      <option value="30to40">$30 - $40</option>
+                      <option value="over40">Over $40</option>
+                    </select>
                   </div>
-                  <div className="tutor-footer">
-                    <div className="tutor-price">${pkg.rate}/hr</div>
-                    <Link to={`/package/${pkg._id}`} className="view-btn">View Details</Link>
+                  <div className="filter-group">
+                    <label>Academic Level</label>
+                    <select name="academicLevel" value={filters.academicLevel} onChange={handleFilterChange}>
+                      <option value="all">All Levels</option>
+                      <option value="highschool">High School</option>
+                      <option value="university">University</option>
+                    </select>
+                  </div>
+                  <div className="filter-group">
+                    <label>Language</label>
+                    <select name="language" value={filters.language} onChange={handleFilterChange}>
+                      <option value="all">All Languages</option>
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="Mandarin">Mandarin</option>
+                      <option value="Korean">Korean</option>
+                    </select>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
 
-            <div className="pagination">
-              <button 
-                className="pagination-btn prev" 
-                onClick={prevPage} 
-                disabled={currentPage === 1}
-              >
-                <FaChevronLeft /> Previous
-              </button>
-              <div className="page-info">
-                Page {currentPage} of {totalPages}
+            {/* Packages Grid */}
+            <div className="tutors-section">
+              <div className="section-header">
+                <h2>Available Learning Packages</h2>
+                <div className="results-info">
+                  Showing {indexOfFirstPackage + 1}-{Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results
+                </div>
               </div>
-              <button 
-                className="pagination-btn next" 
-                onClick={nextPage} 
-                disabled={currentPage === totalPages}
-              >
-                Next <FaChevronRight />
-              </button>
+
+              {filteredPackages.length > 0 ? (
+                <>
+                  <div className="tutors-grid">
+                    {currentPackages.map(pkg => (
+                      <div className="tutor-card" key={pkg._id}>
+                        <div className="tutor-image">
+                          {pkg.thumbnail ? (
+                            <img src={pkg.thumbnail} alt={pkg.title} className="package-thumbnail" />
+                          ) : (
+                            <div className="placeholder-thumbnail">
+                              <FaBook size={40} />
+                            </div>
+                          )}
+                        </div>
+                        <h3 className="tutor-name">{pkg.title}</h3>
+                        <RatingStars rating={pkg.rating || 5} />
+                        <p className="tutor-description">{pkg.description}</p>
+                        <div className="package-meta">
+                          <span className="sessions-badge">{pkg.sessions || 1} session(s)</span>
+                          {pkg.academicLevel && (
+                            <span className="level-badge">{pkg.academicLevel}</span>
+                          )}
+                          {pkg.language && (
+                            <span className="language-badge">{pkg.language}</span>
+                          )}
+                        </div>
+                        <div className="tutor-footer">
+                          <div className="tutor-price">${pkg.rate}/hr</div>
+                          <Link to={`/package/${pkg._id}`} className="view-btn">View Details</Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pagination">
+                    <button 
+                      className="pagination-btn prev" 
+                      onClick={prevPage} 
+                      disabled={currentPage === 1}
+                    >
+                      <FaChevronLeft /> Previous
+                    </button>
+                    <div className="page-info">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <button 
+                      className="pagination-btn next" 
+                      onClick={nextPage} 
+                      disabled={currentPage === totalPages}
+                    >
+                      Next <FaChevronRight />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="no-results">
+                  <p>No learning packages found matching your search criteria.</p>
+                  <p>Try adjusting your filters or search term.</p>
+                </div>
+              )} 
             </div>
+            <Footer />
           </>
-        ) : (
-          <div className="no-results">
-            <p>No learning packages found matching your search criteria.</p>
-            <p>Try adjusting your filters or search term.</p>
-          </div>
-        )} 
+        ) : location.pathname === "/my-sessions" ? (
+          <MySessions />
+        ) : location.pathname === "/learning-progress" ? (
+          <LearningProgress />
+        ) : location.pathname === "/my-learning" ? (
+          <MyLearning />
+        ) : location.pathname === "/messages" ? (
+          <Messages />
+        ) : location.pathname === "/payments" ? (
+          <Payments />
+        ) : location.pathname === "/settings" ? (
+          <Settings />
+        ) : null}
       </div>
-      <Footer />
     </div>
   );
 }

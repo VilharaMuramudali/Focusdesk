@@ -5,6 +5,7 @@ import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook,
   FaExternalLinkAlt, FaGlobe, FaPlay, FaFileAlt, FaYoutube } from "react-icons/fa";
 import "./studentDashboard.scss";
 import Footer from "../../../components/footer/Footer";
+import logActivity from '../../../utils/logActivity';
 import newRequest from "../../../utils/newRequest";
 import StudentSidebar from "./StudentSidebar";
 import FindTutors from "./FindTutors";
@@ -39,6 +40,22 @@ function StudentDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const userMenuRef = useRef(null);
+  const [recommendedTutors, setRecommendedTutors] = useState([]);
+  const [workPlan, setWorkPlan] = useState([]);
+  const [topSubjects, setTopSubjects] = useState([]);
+
+  useEffect(() => {
+    // Log dashboard view
+    logActivity({ type: 'view_dashboard' });
+    // Fetch recommendations
+    newRequest.get('/recommend/tutors').then(res => {
+      setRecommendedTutors(res.data.recommendedTutors || []);
+      setTopSubjects(res.data.topSubjects || []);
+    });
+    newRequest.get('/recommend/workplan').then(res => {
+      setWorkPlan(res.data.plan || []);
+    });
+  }, []);
 
   useEffect(() => {
     // Get user data from localStorage

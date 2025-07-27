@@ -10,6 +10,7 @@ import {
   FaCreditCard,
   FaCog,
   FaSignOutAlt,
+  FaClipboardList,
 } from "react-icons/fa";
 import "./studentDashboard.scss";
 
@@ -19,6 +20,7 @@ export default function StudentSidebar({ onLogout, username }) {
     { label: "Home (Learning Overview)", icon: <FaHome />, to: "/student-dashboard" },
     { label: "Find Tutors", icon: <FaSearch />, to: "/find-tutors" },
     { label: "My Sessions", icon: <FaCalendarAlt />, to: "/my-sessions" },
+    { label: "My Bookings", icon: <FaClipboardList />, to: "/my-bookings" },
     { label: "Learning Progress", icon: <FaChartLine />, to: "/learning-progress" },
     { label: "My Learning", icon: <FaBook />, to: "/my-learning" },
     { label: "Messages", icon: <FaEnvelope />, to: "/messages" },

@@ -1,0 +1,380 @@
+.my-bookings {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .bookings-header {
+    text-align: center;
+    margin-bottom: 30px;
+
+    h2 {
+      color: #333;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #666;
+      font-size: 1.1rem;
+    }
+  }
+
+  .no-bookings {
+    text-align: center;
+    padding: 60px 20px;
+
+    .no-bookings-content {
+      max-width: 400px;
+      margin: 0 auto;
+
+      .no-bookings-icon {
+        font-size: 4rem;
+        color: #ccc;
+        margin-bottom: 20px;
+      }
+
+      h3 {
+        color: #333;
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+      }
+
+      p {
+        color: #666;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+    }
+  }
+
+  .bookings-list {
+    display: grid;
+    gap: 20px;
+  }
+
+  .booking-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .booking-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+
+      .educator-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+
+        .educator-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #e9ecef;
+        }
+
+        h4 {
+          margin: 0 0 5px 0;
+          color: #333;
+          font-size: 1.2rem;
+        }
+
+        p {
+          margin: 0;
+          color: #666;
+          font-size: 0.9rem;
+        }
+      }
+
+      .status-badge {
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: capitalize;
+
+        &.pending {
+          background: #fff3cd;
+          color: #856404;
+        }
+
+        &.confirmed {
+          background: #d1edff;
+          color: #0c5460;
+        }
+
+        &.completed {
+          background: #d4edda;
+          color: #155724;
+        }
+
+        &.cancelled {
+          background: #f8d7da;
+          color: #721c24;
+        }
+      }
+    }
+
+    .booking-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+
+      .session-info {
+        flex: 1;
+
+        h5 {
+          margin: 0 0 10px 0;
+          color: #333;
+          font-size: 1rem;
+        }
+
+        .session-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+          color: #555;
+          font-size: 0.9rem;
+
+          svg {
+            color: #007bff;
+            font-size: 0.8rem;
+          }
+        }
+      }
+
+      .booking-amount {
+        text-align: right;
+        font-size: 1.1rem;
+        color: #333;
+        font-weight: 600;
+      }
+    }
+
+    .student-notes,
+    .educator-notes {
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 8px;
+
+      strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-size: 0.9rem;
+      }
+
+      p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+    }
+
+    .student-notes {
+      background: #f8f9fa;
+      border-left: 3px solid #007bff;
+    }
+
+    .educator-notes {
+      background: #fff3cd;
+      border-left: 3px solid #ffc107;
+    }
+
+    .booking-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+
+      .view-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #0056b3;
+        }
+      }
+    }
+  }
+
+  // Modal Styles
+  .booking-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .booking-modal {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+
+      h4 {
+        margin: 0;
+        color: #333;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: #666;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #f5f5f5;
+          color: #333;
+        }
+      }
+    }
+
+    .modal-content {
+      padding: 20px;
+
+      .detail-row {
+        margin-bottom: 15px;
+
+        strong {
+          display: block;
+          margin-bottom: 5px;
+          color: #333;
+        }
+
+        .status-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          text-transform: capitalize;
+
+          &.pending {
+            background: #fff3cd;
+            color: #856404;
+          }
+
+          &.confirmed {
+            background: #d1edff;
+            color: #0c5460;
+          }
+
+          &.completed {
+            background: #d4edda;
+            color: #155724;
+          }
+
+          &.cancelled {
+            background: #f8d7da;
+            color: #721c24;
+          }
+        }
+
+        .sessions-list {
+          margin-top: 10px;
+
+          .session-detail {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #555;
+          }
+        }
+
+        p {
+          margin: 5px 0 0 0;
+          color: #666;
+          font-size: 0.9rem;
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .my-bookings {
+    padding: 15px;
+
+    .booking-card {
+      padding: 20px;
+
+      .booking-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+
+        .educator-info {
+          width: 100%;
+        }
+      }
+
+      .booking-details {
+        flex-direction: column;
+        gap: 15px;
+
+        .booking-amount {
+          text-align: left;
+        }
+      }
+
+      .booking-actions {
+        justify-content: center;
+      }
+    }
+
+    .booking-modal {
+      margin: 10px;
+      max-height: 90vh;
+    }
+  }
+} 

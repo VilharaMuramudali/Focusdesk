@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { FaStar, FaStarHalfAlt, FaRegStar, FaArrowLeft, FaCalendarAlt, FaClock, FaUser, FaLanguage, FaVideo, FaGraduationCap } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
+import BookingForm from "../../../components/bookingForm/BookingForm";
 import "./packageDetail.scss";
 import Footer from "../../../components/footer/Footer";
 
@@ -11,6 +12,7 @@ function PackageDetail() {
   const [educator, setEducator] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   useEffect(() => {
     const fetchPackageData = async () => {
@@ -37,8 +39,18 @@ function PackageDetail() {
   }, [id]);
 
   const handleBookSession = () => {
-    // Implement booking functionality
-    alert("Booking functionality will be implemented here");
+    console.log('Book session clicked');
+    console.log('Package data:', packageData);
+    setShowBookingForm(true);
+  };
+
+  const handleBookingSuccess = () => {
+    setShowBookingForm(false);
+    // You can add a success message or redirect
+  };
+
+  const handleBookingCancel = () => {
+    setShowBookingForm(false);
   };
 
   // Rating stars component
@@ -77,6 +89,13 @@ function PackageDetail() {
 
   return (
     <div className="package-detail-page">
+      {showBookingForm && (
+        <BookingForm
+          packageData={packageData}
+          onSuccess={handleBookingSuccess}
+          onCancel={handleBookingCancel}
+        />
+      )}
       <div className="package-detail-container">
         <div className="back-navigation">
           <Link to="/student-dashboard" className="back-link">

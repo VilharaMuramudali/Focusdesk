@@ -150,6 +150,55 @@ export const updateBookingStatus = async (req, res, next) => {
   }
 };
 
+// Get student sessions for calendar view
+export const getStudentSessions = async (req, res, next) => {
+  try {
+    const studentId = req.userId;
+    const { month, year } = req.query;
+
+    let query = { studentId, status: { $in: ['confirmed', 'pending'] } };
+    
+    // Filter by month and year if provided
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      
+      query['sessions.date'] = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+
+    const bookings = await Booking.find(query)
+      .populate('educatorId', 'username img email')
+      .populate('packageId', 'title description thumbnail')
+      .sort({ 'sessions.date': 1 });
+
+    // Transform bookings into sessions format
+    const sessions = [];
+    bookings.forEach(booking => {
+      booking.sessions.forEach(session => {
+        sessions.push({
+          _id: booking._id,
+          sessionDate: session.date,
+          duration: session.duration || 60,
+          tutor: booking.educatorId,
+          package: booking.packageId,
+          status: booking.status
+        });
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      bookings: sessions
+    });
+  } catch (error) {
+    console.error("Error fetching student sessions:", error);
+    next(createError(500, "Failed to fetch sessions"));
+  }
+};
+
 // Get single booking details
 export const getBookingById = async (req, res, next) => {
   try {

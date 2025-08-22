@@ -63,3 +63,39 @@ export const logout = async (req, res) => {
     .status(200)
     .send({ message: "User has been logged out." });
 };
+
+export const updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.userId;
+
+    if (!currentPassword || !newPassword) {
+      return next(createError(400, "Current password and new password are required"));
+    }
+
+    if (newPassword.length < 6) {
+      return next(createError(400, "New password must be at least 6 characters long"));
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+
+    // Verify current password
+    const isCorrect = bcrypt.compareSync(currentPassword, user.password);
+    if (!isCorrect) {
+      return next(createError(400, "Current password is incorrect"));
+    }
+
+    // Hash new password
+    const hash = bcrypt.hashSync(newPassword, 5);
+
+    // Update password
+    await User.findByIdAndUpdate(userId, { password: hash });
+
+    res.status(200).send({ message: "Password updated successfully" });
+  } catch (err) {
+    next(createError(500, "Failed to update password"));
+  }
+};

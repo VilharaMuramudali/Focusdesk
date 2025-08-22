@@ -4,7 +4,7 @@ import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook,
   FaChevronLeft, FaChevronRight, FaSignOutAlt, FaCaretDown, FaCog, FaUserCircle, 
   FaExternalLinkAlt, FaGlobe, FaPlay, FaFileAlt, FaYoutube } from "react-icons/fa";
 import "./studentDashboard.scss";
-import Footer from "../../../components/footer/Footer";
+
 import logActivity from '../../../utils/logActivity';
 import newRequest from "../../../utils/newRequest";
 import StudentSidebar from "./StudentSidebar";
@@ -16,6 +16,7 @@ import Messages from "./Messages";
 import Payments from "./Payments";
 import Settings from "./Settings";
 import HomeOverview from "./HomeOverview";
+import SubjectPreferencesModal from "../../../components/SubjectPreferencesModal/SubjectPreferencesModal";
 
 function StudentDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -43,19 +44,64 @@ function StudentDashboard() {
   const [recommendedTutors, setRecommendedTutors] = useState([]);
   const [workPlan, setWorkPlan] = useState([]);
   const [topSubjects, setTopSubjects] = useState([]);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [hasPreferences, setHasPreferences] = useState(false);
+  const [preferencesChecked, setPreferencesChecked] = useState(false);
+  const [preferencesRefreshKey, setPreferencesRefreshKey] = useState(0);
 
   useEffect(() => {
     // Log dashboard view
     logActivity({ type: 'view_dashboard' });
-    // Fetch recommendations
-    newRequest.get('/recommend/tutors').then(res => {
-      setRecommendedTutors(res.data.recommendedTutors || []);
-      setTopSubjects(res.data.topSubjects || []);
-    });
-    newRequest.get('/recommend/workplan').then(res => {
-      setWorkPlan(res.data.plan || []);
-    });
+    
+    // Track user behavior for personalization
+    trackUserBehavior();
+    
+    // Fetch personalized recommendations
+    fetchPersonalizedRecommendations();
+    
+    // Check if user has preferences
+    checkUserPreferences();
   }, []);
+
+  // Track user behavior for better personalization
+  const trackUserBehavior = async () => {
+    try {
+      // Track dashboard view
+      await newRequest.post('/recommend/track', {
+        type: 'dashboard_view',
+        metadata: {
+          page: 'student_dashboard',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Error tracking user behavior:', error);
+    }
+  };
+
+  // Fetch personalized recommendations
+  const fetchPersonalizedRecommendations = async () => {
+    try {
+      // Get personalized tutor recommendations
+      const tutorsResponse = await newRequest.get('/recommend/tutors');
+      if (tutorsResponse.data.success) {
+        setRecommendedTutors(tutorsResponse.data.recommendedTutors || []);
+        setTopSubjects(tutorsResponse.data.topSubjects || []);
+      }
+      
+      // Get personalized work plan
+      const workPlanResponse = await newRequest.get('/recommend/workplan');
+      if (workPlanResponse.data.success) {
+        setWorkPlan(workPlanResponse.data.plan || []);
+      }
+    } catch (error) {
+      console.error('Error fetching personalized recommendations:', error);
+      // Fallback to basic recommendations
+      setRecommendedTutors([]);
+      setTopSubjects(['Mathematics', 'Science', 'English']);
+      setWorkPlan([]);
+    }
+  };
 
   useEffect(() => {
     // Get user data from localStorage
@@ -98,6 +144,51 @@ function StudentDashboard() {
       setError("Failed to load available packages");
       setLoading(false);
     }
+  };
+
+  const checkUserPreferences = async () => {
+    try {
+      const response = await newRequest.get("/users/preferences/check");
+      if (response.data.success) {
+        const { hasPreferences, isEducator } = response.data.data;
+        setHasPreferences(hasPreferences);
+        setPreferencesChecked(true);
+        
+        // Show modal for new students who haven't set preferences
+        if (!isEducator && !hasPreferences) {
+          setShowPreferencesModal(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking preferences:", error);
+      setPreferencesChecked(true);
+    }
+  };
+
+  const handlePreferencesSaved = (preferences) => {
+    setHasPreferences(true);
+    setShowPreferencesModal(false);
+    // Trigger refresh of preferences display
+    refreshHomePreferences();
+    // Optionally refresh recommendations based on new preferences
+    if (preferences && preferences.subjects) {
+      // Trigger recommendation refresh
+      newRequest.get('/recommend/tutors').then(res => {
+        setRecommendedTutors(res.data.recommendedTutors || []);
+        setTopSubjects(res.data.topSubjects || []);
+      });
+    }
+  };
+
+  // Function to refresh preferences in HomeOverview
+  const refreshHomePreferences = () => {
+    // Trigger a refresh by updating the key
+    setPreferencesRefreshKey(prev => prev + 1);
+  };
+
+  // Function to open edit preferences modal
+  const handleEditPreferences = () => {
+    setShowPreferencesModal(true);
   };
 
   // Mock function to simulate fetching related resources from external sources
@@ -334,7 +425,7 @@ function StudentDashboard() {
       <StudentSidebar onLogout={handleLogout} username={currentUser?.username} />
       <div className="student-dashboard-content">
         {location.pathname === "/student-dashboard" ? (
-          <HomeOverview />
+                      <HomeOverview onPreferencesUpdate={refreshHomePreferences} refreshKey={preferencesRefreshKey} onEditPreferences={handleEditPreferences} />
         ) : location.pathname === "/find-tutors" ? (
           <>
             {/* Search and Filters Section */}
@@ -417,7 +508,6 @@ function StudentDashboard() {
               // Tutors Section
               <div className="tutors-section">
                 <div className="section-header">
-                  <h2>Available Learning Packages</h2>
                   <div className="results-info">
                     Showing {indexOfFirstPackage + 1}-{Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results
                   </div>
@@ -436,22 +526,41 @@ function StudentDashboard() {
                                 <FaBook size={40} />
                               </div>
                             )}
+                            <div className="image-overlay-content">
+                              <h4 className="course-title-overlay">{pkg.title}</h4>
+                              <p className="course-description-overlay">{pkg.description}</p>
+                            </div>
+                            <div className="language-tags">
+                              {pkg.languages && pkg.languages.map((lang, index) => (
+                                <span key={index} className="lang-tag">{lang}</span>
+                              ))}
+                            </div>
                           </div>
-                          <h3 className="tutor-name">{pkg.title}</h3>
-                          <RatingStars rating={pkg.rating || 5} />
-                          <p className="tutor-description">{pkg.description}</p>
-                          <div className="package-meta">
-                            <span className="sessions-badge">{pkg.sessions || 1} session(s)</span>
-                            {pkg.academicLevel && (
-                              <span className="level-badge">{pkg.academicLevel}</span>
-                            )}
-                            {pkg.language && (
-                              <span className="language-badge">{pkg.language}</span>
-                            )}
-                          </div>
-                          <div className="tutor-footer">
-                            <div className="tutor-price">${pkg.rate}/hr</div>
-                            <Link to={`/package/${pkg._id}`} className="view-btn">View Details</Link>
+                          <div className="tutor-details">
+                            <div className="tutor-header">
+                              <h3 className="tutor-name">{pkg.title}</h3>
+                              <div className="tutor-price">Rs.{pkg.rate} hr</div>
+                            </div>
+                            <div className="tutor-footer">
+                              <div className="instructor-info">
+                                <div className="instructor-avatar">
+                                  {pkg.educatorId?.img ? (
+                                    <img src={pkg.educatorId.img} alt={pkg.educatorId?.username || 'Instructor'} />
+                                  ) : (
+                                    <div className="instructor-avatar-placeholder">
+                                      <FaUser size={16} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="instructor-details">
+                                  <p className="instructor-name">{pkg.educatorId?.username || 'Instructor'}</p>
+                                  <div className="rating-section">
+                                    <RatingStars rating={pkg.rating || 4.8} />
+                                  </div>
+                                </div>
+                              </div>
+                              <Link to={`/package/${pkg._id}`} className="view-btn">View</Link>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -569,7 +678,6 @@ function StudentDashboard() {
                 )}
               </div>
             )}
-            <Footer />
           </>
         ) : location.pathname === "/my-sessions" ? (
           <MySessions />
@@ -585,6 +693,13 @@ function StudentDashboard() {
           <Settings />
         ) : null}
       </div>
+
+      {/* Subject Preferences Modal */}
+      <SubjectPreferencesModal
+        isOpen={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+        onPreferencesSaved={handlePreferencesSaved}
+      />
     </div>
   );
 }

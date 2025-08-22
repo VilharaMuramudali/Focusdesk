@@ -19,18 +19,28 @@ export default function SchedulesSection() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        console.log("Fetching educator data for date:", selectedDate);
+        
         const [profileResponse, bookingsResponse] = await Promise.all([
           newRequest.get("/profiles/educator"),
           newRequest.get(`/bookings/educator?date=${selectedDate}`)
         ]);
+        
+        console.log("Profile response:", profileResponse.data);
+        console.log("Bookings response:", bookingsResponse.data);
+        
         setProfile({
-          timeSlots: profileResponse.data.profile.timeSlots || []
+          timeSlots: profileResponse.data.profile?.timeSlots || []
         });
-        setBookings(bookingsResponse.data);
+        setBookings(bookingsResponse.data || []);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
         setLoading(false);
+        // Set default values if API fails
+        setProfile({ timeSlots: [] });
+        setBookings([]);
       }
     };
     fetchData();
@@ -40,13 +50,22 @@ export default function SchedulesSection() {
     setUpdatingBookingId(bookingId);
     setUpdateError(null);
     try {
-      await newRequest.put(`/bookings/${bookingId}/status`, { status: newStatus });
+      console.log(`Updating booking ${bookingId} to status: ${newStatus}`);
+      
+      const response = await newRequest.put(`/bookings/${bookingId}/status`, { 
+        status: newStatus 
+      });
+      
+      console.log("Status update response:", response.data);
+      
       // Refresh bookings
-      const response = await newRequest.get(`/bookings/educator?date=${selectedDate}`);
-      setBookings(response.data);
+      const bookingsResponse = await newRequest.get(`/bookings/educator?date=${selectedDate}`);
+      setBookings(bookingsResponse.data || []);
+      
+      console.log("Updated bookings:", bookingsResponse.data);
     } catch (err) {
-      setUpdateError('Failed to update booking status. Please try again.');
       console.error("Error updating booking status:", err);
+      setUpdateError(err.response?.data?.message || 'Failed to update booking status. Please try again.');
     } finally {
       setUpdatingBookingId(null);
     }
@@ -77,7 +96,25 @@ export default function SchedulesSection() {
   };
 
   if (loading) {
-    return <div>Loading schedule data...</div>;
+    return (
+      <div className="ed-schedules">
+        <div className="schedule-header">
+          <h3>Session Bookings</h3>
+          <div className="date-selector">
+            <label>Select Date:</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+            />
+          </div>
+        </div>
+        <div className="loading-container">
+          <div className="loading-spinner">Loading schedule data...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -98,9 +135,20 @@ export default function SchedulesSection() {
       <div className="bookings-section">
         <h4>Bookings for {formatDate(selectedDate)}</h4>
         {updateError && <div className="error-message">{updateError}</div>}
+        
+        {/* Debug information */}
+        <div className="debug-info" style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+          <p>Total bookings: {bookings.length}</p>
+          <p>Selected date: {selectedDate}</p>
+          <p>Time slots available: {profile.timeSlots.length}</p>
+        </div>
+        
         {bookings.length === 0 ? (
           <div className="no-bookings">
             <p>No bookings for this date</p>
+            <p style={{ fontSize: '12px', color: '#666' }}>
+              This could mean: no students have booked sessions, or there might be an issue with the booking system.
+            </p>
           </div>
         ) : (
           <div className="bookings-list">

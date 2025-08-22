@@ -313,7 +313,7 @@
 
     .section-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       margin-bottom: 1.5rem;
 
@@ -348,14 +348,13 @@
 
       .tutor-card {
         background-color: white;
-        border-radius: 8px;
+        border-radius: 12px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 1rem;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        text-align: center;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 320px;
 
         &:hover {
           transform: translateY(-5px);
@@ -363,52 +362,198 @@
         }
 
         .tutor-image {
+          position: relative;
           width: 100%;
-          aspect-ratio: 16/9;
-          border-radius: 8px;
+          height: 160px;
           overflow: hidden;
-          margin-bottom: 1rem;
-          background-color: #f5f7fa;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          background-color: #138CFF;
           
           .package-thumbnail {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 0;
-            display: block;
+            filter: brightness(0.7);
           }
 
+          .placeholder-thumbnail {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #138CFF 0%, #0C7FDA 100%);
+            color: white;
+            font-size: 2rem;
+          }
+
+          // Image overlay for course title and description
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none;
+          }
+
+          .image-overlay-content {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 2;
+            pointer-events: none;
+
+            .course-title-overlay {
+              font-size: 18px;
+              font-weight: 600;
+              color: #FBCF24;
+              margin: 0 0 4px 0;
+              line-height: 1.2;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .course-description-overlay {
+              font-size: 14px;
+              color: #FFFFFF;
+              margin: 0;
+              line-height: 1.2;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+          }
+
+          .language-tags {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            z-index: 2;
+
+            .lang-tag {
+              background: #66B169;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 8px;
+              font-size: 10px;
+              font-weight: 500;
+              min-width: 28px;
+              text-align: center;
+            }
+          }
+        }
+
+        .tutor-details {
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+
+        .tutor-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .tutor-name {
+          font-size: 16px;
+          font-weight: 600;
+          color: #000000;
+          margin: 0;
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .tutor-price {
+          font-size: 14px;
+          color: #5B5B5B;
+          font-weight: 500;
+          margin-left: 8px;
+        }
+
+        .tutor-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: auto;
+        }
+
+        .instructor-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .instructor-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          overflow: hidden;
+          flex-shrink: 0;
+          
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
           }
+
+          .instructor-avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            background-color: #f5f7fa;
+            color: #2196f3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+          }
         }
 
-        .tutor-topic {
-          font-size: 0.9rem;
-          color: #666;
-          margin-bottom: 0.5rem;
+        .instructor-details {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          flex: 1;
+          min-width: 0;
         }
 
-        .tutor-name {
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: #333;
-          margin-bottom: 0.5rem;
+        .instructor-name {
+          font-size: 12px;
+          color: #000000;
+          margin: 0;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .rating-section {
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .rating-stars {
           display: flex;
           align-items: center;
-          margin-bottom: 0.5rem;
+          gap: 2px;
           
           .star {
-            color: #ffc107;
-            margin-right: 2px;
+            color: #FBCF24;
+            font-size: 10px;
             
             &.empty {
               color: #e0e0e0;
@@ -416,83 +561,32 @@
           }
           
           .rating-value {
-            margin-left: 5px;
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 12px;
+            color: #6E6E6E;
+            font-weight: 500;
+            margin-left: 4px;
           }
         }
 
-        .educator-profile {
+        .view-btn {
+          background: #0C7FDA;
+          color: white;
+          border: none;
+          border-radius: 20px;
+          padding: 6px 16px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.5rem;
-      
-          .educator-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #e3e3e3;
-            background: #fff;
-          }
-      
-          .educator-avatar-placeholder {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: #f5f7fa;
-            color: #2196f3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-          }
-      
-          .educator-name {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #333;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 120px;
-          }
-        }
-
-        .tutor-description {
-          font-size: 0.9rem;
-          color: #666;
-          margin-bottom: 1rem;
-          flex-grow: 1;
-        }
-
-        .tutor-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          width: 100%;
-          margin-top: auto;
-
-          .tutor-price {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2196f3;
-          }
-
-          .view-btn {
-            padding: 0.5rem 1rem;
-            background-color: #2196f3;
-            color: white;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: background-color 0.3s ease;
-
-            &:hover {
-              background-color: #1976d2;
-            }
+          justify-content: center;
+          min-width: 60px;
+          
+          &:hover {
+            background: #0A6BC7;
+            transform: translateY(-1px);
           }
         }
       }
@@ -1157,6 +1251,21 @@
 
       .student-sidebar-label {
         font-size: 0.95rem;
+      }
+
+      .student-sidebar-badge {
+        background: #ffc107;
+        color: #856404;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: auto;
+        margin-right: 10px;
       }
 
       &:hover {

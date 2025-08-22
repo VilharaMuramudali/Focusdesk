@@ -21,6 +21,8 @@ import {
 } from "@tanstack/react-query";
 import Pay from "./pages/pay/Pay";
 import Success from "./pages/success/Success";
+import { ChatProvider } from "./context/ChatContext.jsx";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   const queryClient = new QueryClient();
@@ -29,7 +31,10 @@ function App() {
     return (
       <div className="app">
         <QueryClientProvider client={queryClient}>
-          <Outlet />
+          <ChatProvider>
+            <Outlet />
+            <Toaster position="top-right" />
+          </ChatProvider>
         </QueryClientProvider>
       </div>
     );

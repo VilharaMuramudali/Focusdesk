@@ -4,7 +4,17 @@ import createError from "../utils/createError.js";
 import User from "../models/user.model.js";
 
 export const verifyToken = (req, res, next) => {
-  const token = req.cookies.accessToken;
+  // Check for token in cookies first, then in Authorization header
+  let token = req.cookies.accessToken;
+  
+  if (!token) {
+    // Check Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+  
   if (!token) return next(createError(401, "You are not authenticated!"));
 
   jwt.verify(token, process.env.JWT_SECRET, async (err, payload) => {

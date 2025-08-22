@@ -16,6 +16,14 @@ export default function VideoCall({ roomId, userId, onLeave }) {
   const [timer, setTimer] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  
+  // Control states
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [participants, setParticipants] = useState([{ id: userId, name: 'You' }]);
 
   // Timer logic
   useEffect(() => {
@@ -27,19 +35,23 @@ export default function VideoCall({ roomId, userId, onLeave }) {
       setTimerInterval(interval);
     } else {
       setTimer(0);
-      if (timerInterval) clearInterval(timerInterval);
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        setTimerInterval(null);
+      }
     }
     return () => {
       if (interval) clearInterval(interval);
+      if (timerInterval) clearInterval(timerInterval);
     };
-    // eslint-disable-next-line
-  }, [inCall]);
+  }, [inCall, timerInterval]);
 
   // Notification logic
   const showNotification = (msg) => {
-    setNotifications((prev) => [...prev, msg]);
+    const notificationId = Date.now();
+    setNotifications((prev) => [...prev, { id: notificationId, message: msg }]);
     setTimeout(() => {
-      setNotifications((prev) => prev.slice(1));
+      setNotifications((prev) => prev.filter(n => n.id !== notificationId));
     }, 4000);
   };
 
@@ -53,101 +65,166 @@ export default function VideoCall({ roomId, userId, onLeave }) {
 
   useEffect(() => {
     if (!socket) return;
+    
     socket.emit("join-room", { roomId, userId });
 
     let pc;
     let localStream;
+    let cleanupFunctions = [];
 
     const startCall = async () => {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStream;
+        }
+        
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+        });
+        setPeerConnection(pc);
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit("ice-candidate", { roomId, candidate: event.candidate, userId });
+          }
+        };
+        
+        pc.ontrack = (event) => {
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+          }
+        };
+
+        // Socket event handlers
+        const handleUserJoined = async ({ userId: joinedUser }) => {
+          showNotification(`${joinedUser} joined the session`);
+          setParticipants(prev => [...prev, { id: joinedUser, name: joinedUser }]);
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit("offer", { roomId, offer, userId });
+        };
+
+        const handleOffer = async ({ offer }) => {
+          await pc.setRemoteDescription(new window.RTCSessionDescription(offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit("answer", { roomId, answer, userId });
+        };
+
+        const handleAnswer = async ({ answer }) => {
+          await pc.setRemoteDescription(new window.RTCSessionDescription(answer));
+        };
+
+        const handleIceCandidate = async ({ candidate }) => {
+          try {
+            await pc.addIceCandidate(new window.RTCIceCandidate(candidate));
+          } catch (e) {
+            // Ignore duplicate candidates
+          }
+        };
+
+        const handleChatMessage = ({ userId: from, message, file, fileName }) => {
+          setChatMessages((prev) => [
+            ...prev,
+            { from, message, file, fileName, timestamp: new Date() }
+          ]);
+          if (file) {
+            showNotification(`File received: ${fileName}`);
+          }
+        };
+
+        const handleUserLeft = ({ userId: leftUser }) => {
+          showNotification(`${leftUser} left the session`);
+          setParticipants(prev => prev.filter(p => p.id !== leftUser));
+        };
+
+        // Add event listeners
+        socket.on("user-joined", handleUserJoined);
+        socket.on("offer", handleOffer);
+        socket.on("answer", handleAnswer);
+        socket.on("ice-candidate", handleIceCandidate);
+        socket.on("chat-message", handleChatMessage);
+        socket.on("user-left", handleUserLeft);
+
+        // Store cleanup functions
+        cleanupFunctions = [
+          () => socket.off("user-joined", handleUserJoined),
+          () => socket.off("offer", handleOffer),
+          () => socket.off("answer", handleAnswer),
+          () => socket.off("ice-candidate", handleIceCandidate),
+          () => socket.off("chat-message", handleChatMessage),
+          () => socket.off("user-left", handleUserLeft)
+        ];
+
+        setInCall(true);
+      } catch (error) {
+        console.error('Error starting call:', error);
+        showNotification('Failed to start call');
       }
-      pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" }
-        ]
-      });
-      setPeerConnection(pc);
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit("ice-candidate", { roomId, candidate: event.candidate, userId });
-        }
-      };
-      pc.ontrack = (event) => {
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      // If you are the second user, create an offer
-      socket.on("user-joined", async ({ userId: joinedUser }) => {
-        showNotification(`User ${joinedUser === userId ? "(You)" : joinedUser} joined the session.`);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit("offer", { roomId, offer, userId });
-      });
-
-      socket.on("offer", async ({ offer }) => {
-        await pc.setRemoteDescription(new window.RTCSessionDescription(offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit("answer", { roomId, answer, userId });
-      });
-
-      socket.on("answer", async ({ answer }) => {
-        await pc.setRemoteDescription(new window.RTCSessionDescription(answer));
-      });
-
-      socket.on("ice-candidate", async ({ candidate }) => {
-        try {
-          await pc.addIceCandidate(new window.RTCIceCandidate(candidate));
-        } catch (e) {
-          // Ignore duplicate candidates
-        }
-      });
-
-      setInCall(true);
     };
-
-    // Chat events
-    socket.on("chat-message", ({ userId: from, message, file, fileName }) => {
-      setChatMessages((prev) => [
-        ...prev,
-        { from, message, file, fileName }
-      ]);
-      if (file) {
-        showNotification(`File received: ${fileName}`);
-      }
-    });
-
-    socket.on("user-left", ({ userId: leftUser }) => {
-      showNotification(`User ${leftUser === userId ? "(You)" : leftUser} left the session.`);
-    });
 
     startCall();
 
     return () => {
-      if (pc) {
-        pc.close();
-      }
+      // Cleanup socket event listeners
+      cleanupFunctions.forEach(cleanup => cleanup());
+      
+      // Cleanup media streams
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
+      
+      // Cleanup peer connection
+      if (pc) {
+        pc.close();
+      }
+      
       socket.emit("leave-room", { roomId, userId });
       setInCall(false);
+      setPeerConnection(null);
     };
-    // eslint-disable-next-line
-  }, [socket]);
+  }, [socket, roomId, userId]);
+
+  // Control functions
+  const toggleAudio = () => {
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      const audioTrack = localVideoRef.current.srcObject.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsAudioMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      const videoTrack = localVideoRef.current.srcObject.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOff(!videoTrack.enabled);
+      }
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    // Screen sharing logic would go here
+    setIsScreenSharing(!isScreenSharing);
+    showNotification(isScreenSharing ? 'Screen sharing stopped' : 'Screen sharing started');
+  };
 
   // Send chat message
   const sendMessage = (e) => {
     e.preventDefault();
     if (chatInput.trim() && socket) {
+      const message = {
+        from: userId,
+        message: chatInput,
+        timestamp: new Date()
+      };
       socket.emit("chat-message", { roomId, userId, message: chatInput });
-      setChatMessages((prev) => [...prev, { from: userId, message: chatInput }]);
+      setChatMessages((prev) => [...prev, message]);
       setChatInput("");
     }
   };
@@ -166,7 +243,7 @@ export default function VideoCall({ roomId, userId, onLeave }) {
         });
         setChatMessages((prev) => [
           ...prev,
-          { from: userId, file: reader.result, fileName: file.name }
+          { from: userId, file: reader.result, fileName: file.name, timestamp: new Date() }
         ]);
         showNotification(`File sent: ${file.name}`);
       };
@@ -175,63 +252,207 @@ export default function VideoCall({ roomId, userId, onLeave }) {
     setFileInput(null);
   };
 
-  // Format timer as mm:ss
   const formatTimer = (seconds) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+    return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
   };
 
   return (
-    <div className="video-call-modal">
-      <div className="notification-banner">
-        {notifications.map((msg, idx) => (
-          <div key={idx} className="notification">{msg}</div>
+    <div className="video-conference">
+      {/* Notifications */}
+      <div className="notifications-container">
+        {notifications.map((notif) => (
+          <div key={notif.id} className="notification-toast">
+            {notif.message}
+          </div>
         ))}
       </div>
-      <div className="video-main">
-        <div className="session-timer">Session Time: {formatTimer(timer)}</div>
-        <div className="video-container">
-          <video ref={localVideoRef} autoPlay muted playsInline className="local-video" />
-          <video ref={remoteVideoRef} autoPlay playsInline className="remote-video" />
+
+      {/* Header */}
+      <div className="conference-header">
+        <div className="session-info">
+          <h3>Learning Session</h3>
+          <span className="session-time">{formatTimer(timer)}</span>
         </div>
-        <div className="controls">
-          <button onClick={onLeave}>Leave Session</button>
+        <div className="header-controls">
+          <button 
+            className={`header-btn ${showParticipants ? 'active' : ''}`}
+            onClick={() => setShowParticipants(!showParticipants)}
+          >
+            👥 {participants.length}
+          </button>
+          <button 
+            className={`header-btn ${showChat ? 'active' : ''}`}
+            onClick={() => setShowChat(!showChat)}
+          >
+            💬
+          </button>
         </div>
-        {!inCall && <div>Connecting...</div>}
       </div>
-      <div className="chat-sidebar">
-        <div className="chat-messages">
-          {chatMessages.map((msg, idx) => (
-            <div key={idx} className={msg.from === userId ? "my-message" : "their-message"}>
-              {msg.message && <span>{msg.message}</span>}
-              {msg.file && (
-                <div>
-                  <a href={msg.file} download={msg.fileName} target="_blank" rel="noopener noreferrer">
-                    📎 {msg.fileName}
-                  </a>
-                </div>
-              )}
+
+      {/* Main content */}
+      <div className="conference-body">
+        {/* Video area */}
+        <div className="video-area">
+          <div className="video-grid">
+            {/* Remote participant video */}
+            <div className="video-tile main-speaker">
+              <video ref={remoteVideoRef} autoPlay playsInline className="participant-video" />
+              <div className="participant-overlay">
+                <span className="participant-name">Remote Participant</span>
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Local video (floating) */}
+          <div className="local-video-container">
+            <video 
+              ref={localVideoRef} 
+              autoPlay 
+              muted 
+              playsInline 
+              className={`local-video ${isVideoOff ? 'video-off' : ''}`}
+            />
+            <div className="local-video-overlay">
+              <span className="local-name">You</span>
+            </div>
+          </div>
         </div>
-        <form className="chat-input" onSubmit={sendMessage}>
-          <input
-            type="text"
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            placeholder="Type a message..."
-          />
-          <input
-            type="file"
-            style={{ display: 'none' }}
-            ref={ref => setFileInput(ref)}
-            onChange={sendFile}
-          />
-          <button type="button" onClick={() => fileInput && fileInput.click()}>📎</button>
-          <button type="submit">Send</button>
-        </form>
+
+        {/* Side panels */}
+        {showChat && (
+          <div className="side-panel chat-panel">
+            <div className="panel-header">
+              <h4>Chat</h4>
+              <button onClick={() => setShowChat(false)}>✕</button>
+            </div>
+            <div className="chat-messages">
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} className={`chat-message ${msg.from === userId ? 'own-message' : 'other-message'}`}>
+                  <div className="message-header">
+                    <span className="sender-name">{msg.from === userId ? 'You' : msg.from}</span>
+                    <span className="message-time">
+                      {msg.timestamp?.toLocaleTimeString() || ''}
+                    </span>
+                  </div>
+                  {msg.message && <div className="message-text">{msg.message}</div>}
+                  {msg.file && (
+                    <div className="message-file">
+                      <a href={msg.file} download={msg.fileName} target="_blank" rel="noopener noreferrer">
+                        📎 {msg.fileName}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <form className="chat-input-form" onSubmit={sendMessage}>
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Send a message..."
+                className="chat-input-field"
+              />
+              <input
+                type="file"
+                style={{ display: 'none' }}
+                ref={(ref) => setFileInput(ref)}
+                onChange={sendFile}
+              />
+              <button type="button" className="file-btn" onClick={() => fileInput && fileInput.click()}>
+                📎
+              </button>
+              <button type="submit" className="send-btn">Send</button>
+            </form>
+          </div>
+        )}
+
+        {showParticipants && (
+          <div className="side-panel participants-panel">
+            <div className="panel-header">
+              <h4>Participants ({participants.length})</h4>
+              <button onClick={() => setShowParticipants(false)}>✕</button>
+            </div>
+            <div className="participants-list">
+              {participants.map((participant) => (
+                <div key={participant.id} className="participant-item">
+                  <div className="participant-avatar">
+                    {participant.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="participant-name">{participant.name}</span>
+                  {participant.id === userId && <span className="you-badge">You</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Bottom controls */}
+      <div className="conference-controls">
+        <div className="controls-left">
+          <div className="meeting-id">Room: {roomId}</div>
+        </div>
+
+        <div className="controls-center">
+          <button 
+            className={`control-btn ${isAudioMuted ? 'muted' : ''}`}
+            onClick={toggleAudio}
+            title={isAudioMuted ? 'Unmute' : 'Mute'}
+          >
+            {isAudioMuted ? '🎤❌' : '🎤'}
+          </button>
+
+          <button 
+            className={`control-btn ${isVideoOff ? 'video-off' : ''}`}
+            onClick={toggleVideo}
+            title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
+          >
+            {isVideoOff ? '📹❌' : '📹'}
+          </button>
+
+          <button 
+            className={`control-btn ${isScreenSharing ? 'active' : ''}`}
+            onClick={toggleScreenShare}
+            title="Share screen"
+          >
+            🖥️
+          </button>
+
+          <button className="control-btn" title="More options">
+            ⚙️
+          </button>
+
+          <button className="leave-btn" onClick={onLeave} title="Leave call">
+            📞❌
+          </button>
+        </div>
+
+        <div className="controls-right">
+          <button 
+            className={`control-btn ${showChat ? 'active' : ''}`}
+            onClick={() => setShowChat(!showChat)}
+          >
+            💬
+          </button>
+          <button 
+            className={`control-btn ${showParticipants ? 'active' : ''}`}
+            onClick={() => setShowParticipants(!showParticipants)}
+          >
+            👥
+          </button>
+        </div>
+      </div>
+
+      {!inCall && (
+        <div className="connecting-overlay">
+          <div className="connecting-spinner"></div>
+          <p>Connecting to session...</p>
+        </div>
+      )}
     </div>
   );
-} 
+}

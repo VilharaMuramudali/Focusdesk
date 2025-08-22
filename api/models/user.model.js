@@ -51,6 +51,51 @@ const userSchema = new Schema({
   educationLevel: {
     type: String,
     required: false,
+  },
+  
+  // AI-specific fields for students
+  learningPreferences: {
+    subjects: [String],
+    learningStyle: { 
+      type: String, 
+      enum: ['visual', 'auditory', 'kinesthetic', 'reading'], 
+      default: 'visual' 
+    },
+    sessionDuration: { 
+      type: String, 
+      enum: ['30min', '1hour', '2hours'], 
+      default: '1hour' 
+    },
+    timePreferences: [String],
+    academicLevel: { 
+      type: String, 
+      enum: ['highschool', 'university', 'postgraduate'], 
+      default: 'university' 
+    }
+  },
+  
+  // AI-specific fields for educators
+  teachingProfile: {
+    expertise: [{
+      subject: String,
+      proficiencyLevel: { type: Number, min: 1, max: 10 },
+      yearsExperience: Number
+    }],
+    teachingStyle: { 
+      type: String, 
+      enum: ['structured', 'flexible', 'interactive', 'theoretical', 'practical'],
+      default: 'interactive'
+    },
+    averageRating: { type: Number, default: 0 },
+    totalSessions: { type: Number, default: 0 },
+    responseTimeHours: { type: Number, default: 24 }
+  },
+  
+  // AI behavior tracking
+  aiFeatures: {
+    learningVector: [Number], // For ML algorithms
+    lastActive: { type: Date, default: Date.now },
+    interactionCount: { type: Number, default: 0 }
   }
 },{
   timestamps: true

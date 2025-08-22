@@ -1,0 +1,64 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Train AI Models",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/api/python-ai/training_pipeline.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/api/python-ai",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/api/python-ai"
+            },
+            "args": []
+        },
+        {
+            "name": "Run Data Pipeline",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/api/python-ai/data_pipeline.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/api/python-ai",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/api/python-ai"
+            },
+            "args": []
+        },
+        {
+            "name": "Start AI Service",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/api/python-ai/app.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/api/python-ai",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/api/python-ai"
+            },
+            "args": []
+        },
+        {
+            "name": "Test AI Service",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/api/python-ai/test_ai_service.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/api/python-ai",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/api/python-ai"
+            },
+            "args": []
+        },
+        {
+            "name": "Start Node.js Server",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/api/server.js",
+            "cwd": "${workspaceFolder}/api",
+            "console": "integratedTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        }
+    ]
+}

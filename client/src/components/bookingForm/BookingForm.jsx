@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaClock, FaUser, FaTimes, FaCheck } from 'react-icons/fa';
 import newRequest from '../../utils/newRequest';
+import PaymentModal from './PaymentModal';
 import './BookingForm.scss';
 
 const BookingForm = ({ packageData, onSuccess, onCancel }) => {
@@ -9,9 +10,10 @@ const BookingForm = ({ packageData, onSuccess, onCancel }) => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
   const [sessionDates, setSessionDates] = useState([]);
   const [studentNotes, setStudentNotes] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [bookingData, setBookingData] = useState(null);
 
   useEffect(() => {
     // Initialize with default session
@@ -65,13 +67,8 @@ const BookingForm = ({ packageData, onSuccess, onCancel }) => {
       });
 
       console.log('Booking response:', response.data);
-      setSuccess(true);
-      
-      // Show success message for 2 seconds then redirect
-      setTimeout(() => {
-        onSuccess();
-        navigate('/student-dashboard');
-      }, 2000);
+      setBookingData(response.data.booking);
+      setShowPaymentModal(true);
       
     } catch (err) {
       console.error('Booking error:', err);
@@ -83,17 +80,25 @@ const BookingForm = ({ packageData, onSuccess, onCancel }) => {
 
   const totalAmount = packageData.rate * sessionDates.length;
 
-  if (success) {
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    onSuccess();
+    navigate('/student-dashboard');
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false);
+    // Optionally, you could delete the booking here if payment is cancelled
+  };
+
+  if (showPaymentModal && bookingData) {
     return (
-      <div className="booking-form-overlay">
-        <div className="booking-form-modal">
-          <div className="success-message">
-            <FaCheck className="success-icon" />
-            <h3>Booking Successful!</h3>
-            <p>Your booking has been created successfully. You will be redirected to your dashboard.</p>
-          </div>
-        </div>
-      </div>
+      <PaymentModal
+        amount={totalAmount}
+        packageTitle={packageData.title}
+        onPaymentSuccess={handlePaymentSuccess}
+        onCancel={handlePaymentCancel}
+      />
     );
   }
 
@@ -167,14 +172,7 @@ const BookingForm = ({ packageData, onSuccess, onCancel }) => {
             />
           </div>
 
-          <div className="payment-info">
-            <h4>Payment Information</h4>
-            <div className="payment-notice">
-              <p><strong>Demo Mode:</strong> This is a demonstration booking system.</p>
-              <p>In a real application, payment would be processed here.</p>
-              <p>Total to pay: <strong>Rs.{totalAmount}</strong></p>
-            </div>
-          </div>
+          
 
           {error && <div className="error-message">{error}</div>}
 

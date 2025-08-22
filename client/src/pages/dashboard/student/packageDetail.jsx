@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { FaStar, FaStarHalfAlt, FaRegStar, FaArrowLeft, FaCalendarAlt, FaClock, FaUser, FaLanguage, FaVideo, FaGraduationCap } from "react-icons/fa";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { FaStar, FaStarHalfAlt, FaRegStar, FaArrowLeft, FaCalendarAlt, FaClock, FaUser, FaLanguage, FaVideo, FaGraduationCap, FaComments, FaPaperPlane } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
+import { useChat } from '../../../context/ChatContext.jsx';
+import { useNotifications } from '../../../hooks/useNotifications';
 import BookingForm from "../../../components/bookingForm/BookingForm";
 import "./packageDetail.scss";
 import Footer from "../../../components/footer/Footer";
 
 function PackageDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [packageData, setPackageData] = useState(null);
   const [educator, setEducator] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  
+  const { createNewConversation, sendTextMessage } = useChat();
+  const { showSuccessNotification, showErrorNotification } = useNotifications();
 
   useEffect(() => {
     const fetchPackageData = async () => {
@@ -51,6 +60,57 @@ function PackageDetail() {
 
   const handleBookingCancel = () => {
     setShowBookingForm(false);
+  };
+
+  const handleMessageEducator = () => {
+    if (!educator) {
+      showErrorNotification('Educator information not available');
+      return;
+    }
+    setShowChatModal(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !educator || isSending) return;
+
+    setIsSending(true);
+    try {
+      // Create conversation if it doesn't exist
+      const conversation = await createNewConversation(
+        educator._id,
+        educator.username,
+        null // No booking ID for pre-booking messages
+      );
+
+      // Send the message
+      await sendTextMessage(conversation._id, messageText.trim());
+      
+      setMessageText('');
+      showSuccessNotification('Message sent successfully!');
+      
+      // Close modal and navigate to messages page
+      setShowChatModal(false);
+      navigate('/messages');
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      showErrorNotification('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const closeChatModal = () => {
+    setShowChatModal(false);
+    setMessageText('');
+    setIsSending(false);
   };
 
   // Rating stars component
@@ -190,9 +250,15 @@ function PackageDetail() {
                     <p>{educator.bio || "Experienced educator"}</p>
                   </div>
                 </div>
-                <Link to={`/educator/${educator._id}`} className="view-profile-link">
-                  View Full Profile
-                </Link>
+                <div className="educator-actions">
+                  <Link to={`/educator/${educator._id}`} className="view-profile-link">
+                    View Full Profile
+                  </Link>
+                  <button className="message-educator-btn" onClick={handleMessageEducator}>
+                    <FaComments />
+                    Message Educator
+                  </button>
+                </div>
               </div>
             )}
             
@@ -210,6 +276,67 @@ function PackageDetail() {
           </div>
         </div>
       </div>
+
+      {/* Chat Modal */}
+      {showChatModal && educator && (
+        <div className="chat-modal-overlay" onClick={closeChatModal}>
+          <div className="chat-modal" onClick={e => e.stopPropagation()}>
+            <div className="chat-header">
+              <div className="chat-user-info">
+                <div className="user-avatar">
+                  {educator.img ? (
+                    <img src={educator.img} alt={educator.username} />
+                  ) : (
+                    <FaUser />
+                  )}
+                </div>
+                <div className="user-details">
+                  <h4>{educator.username}</h4>
+                  <p>{packageData?.title || 'Package Inquiry'}</p>
+                  <div className="user-status">
+                    <span className="status-dot online"></span>
+                    <span className="status-text">Online</span>
+                  </div>
+                </div>
+              </div>
+              <button className="close-chat-btn" onClick={closeChatModal}>
+                ×
+              </button>
+            </div>
+            
+            <div className="chat-messages">
+              <div className="no-messages">
+                <FaComments />
+                <p>Start a conversation with {educator.username}</p>
+                <p className="message-hint">Ask questions about this package before booking.</p>
+              </div>
+            </div>
+            
+            <div className="chat-input">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about the package, schedule, or any questions..."
+                rows="1"
+                disabled={isSending}
+              />
+              <button 
+                className="send-btn"
+                onClick={handleSendMessage}
+                disabled={!messageText.trim() || isSending}
+              >
+                {isSending ? (
+                  <div className="sending-spinner"></div>
+                ) : (
+                  <FaPaperPlane />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

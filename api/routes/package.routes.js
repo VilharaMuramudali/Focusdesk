@@ -6,7 +6,8 @@ import {
   updatePackage, 
   deletePackage, 
   getPackageById,
-  getPublicPackages
+  getPublicPackages,
+  getRecommendedPackages
 } from "../controllers/package.controller.js";
 import { verifyToken, educator } from "../middleware/jwt.js";
 
@@ -20,6 +21,7 @@ router.delete("/:id", verifyToken, educator, deletePackage);
 
 // Public routes
 router.get("/public", getPublicPackages);
+router.get("/recommended", getRecommendedPackages);
 router.get("/:id", getPackageById);
 
 export default router;

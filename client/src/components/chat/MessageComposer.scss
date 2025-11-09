@@ -1,0 +1,147 @@
+.message-composer {
+  background: white;
+  border-top: 1px solid #e1e5e9;
+  padding: 16px;
+  position: relative;
+
+  .composer-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    .toolbar-btn {
+      background: none;
+      border: none;
+      color: #6c757d;
+      padding: 8px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      
+      &:hover:not(:disabled) {
+        background: #f8f9fa;
+        color: #495057;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .composer-input {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+    border-radius: 24px;
+    padding: 8px 16px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease;
+
+    &:focus-within {
+      border-color: #007bff;
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #1a1a1a;
+      min-height: 20px;
+      max-height: 120px;
+
+      &::placeholder {
+        color: #6c757d;
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+
+    .send-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      font-size: 14px;
+
+      &:hover:not(:disabled) {
+        background: #0056b3;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        background: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+      }
+    }
+  }
+
+  .emoji-picker-container,
+  .file-upload-container {
+    position: absolute;
+    bottom: 100%;
+    left: 16px;
+    right: 16px;
+    z-index: 1000;
+    margin-bottom: 8px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e1e5e9;
+  }
+
+  .connection-status {
+    position: absolute;
+    top: -30px;
+    left: 16px;
+    right: 16px;
+    background: #ffc107;
+    color: #856404;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .message-composer {
+    padding: 12px;
+
+    .composer-toolbar {
+      margin-bottom: 8px;
+    }
+
+    .composer-input {
+      padding: 6px 12px;
+    }
+
+    .emoji-picker-container,
+    .file-upload-container {
+      left: 8px;
+      right: 8px;
+    }
+  }
+}

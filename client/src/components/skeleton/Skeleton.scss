@@ -1,0 +1,72 @@
+@keyframes skeletonPulse {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton-pulse {
+  display: block;
+  background: linear-gradient(90deg, 
+    rgba(227, 230, 234, 0.6) 25%, 
+    rgba(227, 230, 234, 0.9) 37%, 
+    rgba(227, 230, 234, 0.6) 63%
+  );
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.4s ease infinite;
+  border-radius: 4px;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+.skeleton-text {
+  margin-bottom: 12px;
+}
+
+.skeleton-profile {
+  padding: 24px;
+  
+  .skeleton-header {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    
+    .skeleton-info {
+      flex: 1;
+      padding-top: 12px;
+    }
+  }
+  
+  .skeleton-content {
+    max-width: 600px;
+  }
+}
+
+.skeleton-package {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  .skeleton-package-content {
+    padding: 16px;
+    
+    .skeleton-package-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+    }
+  }
+}
+
+.skeleton-package-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 24px;
+}

@@ -55,7 +55,7 @@ const Add = () => {
       return newRequest.post("/gigs", gig);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["myGigs"]);
+      queryClient.invalidateQueries(["packages"]);
     },
   });
 

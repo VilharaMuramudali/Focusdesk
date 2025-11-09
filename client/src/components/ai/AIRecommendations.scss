@@ -1,0 +1,349 @@
+// client/src/components/ai/AIRecommendations.scss
+.ai-recommendations {
+    margin: 2rem 0;
+    
+    &.loading, &.error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    
+    .ai-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      
+      .ai-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        .ai-icon {
+          color: #FF9721;
+          font-size: 1.5rem;
+          
+          &.spinning {
+            animation: spin 2s linear infinite;
+          }
+        }
+        
+        h3 {
+          color: #333;
+          margin: 0;
+          font-size: 1.3rem;
+        }
+      }
+      
+      .algorithm-selector {
+        .algorithm-select {
+          padding: 0.5rem 1rem;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+          background: white;
+          font-size: 0.9rem;
+          
+          &:focus {
+            outline: none;
+            border-color: #FF9721;
+          }
+        }
+      }
+    }
+    
+    .ai-description {
+      background: linear-gradient(135deg, #FFF8F0 0%, #FFEEDD 100%);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid #FF9721;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+      color: #666;
+    }
+    
+    .loading-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      
+      .loading-card {
+        height: 200px;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        
+        .loading-shimmer {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: loading-shimmer 2s infinite;
+        }
+      }
+    }
+    
+    .recommendations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+    }
+    
+    .recommendation-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      overflow: hidden;
+      
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      }
+      
+      .card-header {
+        background: linear-gradient(135deg, #FF9721 0%, #FFB347 100%);
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+        
+        .rank-badge {
+          background: rgba(255, 255, 255, 0.2);
+          padding: 0.25rem 0.5rem;
+          border-radius: 12px;
+          font-weight: bold;
+          font-size: 0.8rem;
+        }
+        
+        .recommendation-badge {
+          padding: 0.25rem 0.75rem;
+          border-radius: 15px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          color: white;
+        }
+        
+        .match-score {
+          font-weight: bold;
+          font-size: 0.9rem;
+        }
+      }
+      
+      .educator-info {
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+        
+        .educator-avatar {
+          position: relative;
+          flex-shrink: 0;
+          
+          img, .default-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+          
+          .default-avatar {
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 1.5rem;
+          }
+          
+          .online-indicator {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 16px;
+            height: 16px;
+            background: #4CAF50;
+            border: 2px solid white;
+            border-radius: 50%;
+          }
+        }
+        
+        .educator-details {
+          flex-grow: 1;
+          
+          .educator-name {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.1rem;
+          }
+          
+          .educator-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-bottom: 0.75rem;
+            
+            .rating, .response-time {
+              display: flex;
+              align-items: center;
+              gap: 0.25rem;
+              font-size: 0.85rem;
+              color: #666;
+              
+              .star-icon {
+                color: #FFD700;
+              }
+              
+              .clock-icon {
+                color: #999;
+              }
+              
+              .sessions-count {
+                color: #999;
+              }
+            }
+          }
+          
+          .expertise {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            
+            .expertise-tag {
+              background: #E3F2FD;
+              color: #1976D2;
+              padding: 0.25rem 0.5rem;
+              border-radius: 12px;
+              font-size: 0.8rem;
+              font-weight: 500;
+            }
+          }
+        }
+      }
+      
+      .ai-explanation {
+        padding: 0 1rem;
+        
+        .explanation-text {
+          background: #F8F9FA;
+          padding: 0.75rem;
+          border-radius: 8px;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.5rem;
+          
+          .explanation-icon {
+            color: #FF9721;
+            font-size: 0.9rem;
+            margin-top: 0.1rem;
+            flex-shrink: 0;
+          }
+          
+          p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+          }
+        }
+      }
+      
+      .card-actions {
+        padding: 1rem;
+        display: flex;
+        gap: 0.75rem;
+        
+        .view-profile-btn {
+          flex-grow: 1;
+          background: #FF9721;
+          color: white;
+          border: none;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.3s ease;
+          
+          &:hover {
+            background: #E8851C;
+          }
+        }
+        
+        .bookmark-btn {
+          background: white;
+          border: 2px solid #E0E0E0;
+          padding: 0.75rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          color: #999;
+          
+          &:hover {
+            border-color: #FF9721;
+            color: #FF9721;
+          }
+        }
+      }
+    }
+    
+    .no-recommendations {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #666;
+      
+      .ai-icon {
+        font-size: 3rem;
+        color: #ddd;
+        margin-bottom: 1rem;
+      }
+      
+      h4 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+      }
+      
+      p {
+        margin: 0;
+        max-width: 500px;
+        margin: 0 auto;
+        line-height: 1.5;
+      }
+    }
+    
+    .error-message {
+      text-align: center;
+      
+      .retry-btn {
+        background: #FF9721;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: 1rem;
+        
+        &:hover {
+          background: #E8851C;
+        }
+      }
+    }
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes loading-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  

@@ -3,6 +3,7 @@ import "./GigCard.scss";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import newRequest from "../../utils/newRequest";
+import RatingStars from "../RatingStars";
 
 const GigCard = ({ item }) => {
   const { isLoading, error, data } = useQuery({
@@ -28,12 +29,14 @@ const GigCard = ({ item }) => {
             </div>
           )}
           <p>{item.desc}</p>
-          <div className="star">
-            <img src="./img/star.png" alt="" />
-            <span>
-              {!isNaN(item.totalStars / item.starNumber) &&
-                Math.round(item.totalStars / item.starNumber)}
-            </span>
+          <div className="rating-section">
+            <RatingStars 
+              rating={item.rating || item.averageRating || 0}
+              showNumber={true}
+              size="small"
+              showCount={true}
+              reviewCount={item.totalReviews || item.starNumber || 0}
+            />
           </div>
         </div>
         <hr />

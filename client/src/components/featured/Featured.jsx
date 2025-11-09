@@ -8,7 +8,7 @@ function Featured() {
   const navigate = useNavigate();
 
   const handleSubmit = () => {
-    navigate(`/gigs?search=${input}`);
+    navigate(`/find-tutors?search=${input}`);
   };
 
   return (
@@ -89,14 +89,14 @@ function Featured() {
       </div>
       <div className="trusted-section">
         <div className="trusted-container">
-          <div className="trusted-text">Trusted By 1M+ Business</div>
+          <div className="trusted-text">Trusted By 1M+ Users</div>
           <div className="trusted-logos">
-            <div className="logo">Luminous</div>
-            <div className="logo">Lightbox</div>
-            <div className="logo">FocalPoint</div>
-            <div className="logo">Polymath</div>
-            <div className="logo">Alt+Shift</div>
-            <div className="logo">Nietzsche</div>
+            <div className="logo">Example</div>
+            <div className="logo">Example</div>
+            <div className="logo">Example</div>
+            <div className="logo">Example</div>
+            <div className="logo">Example</div>
+            <div className="logo">Example</div>
           </div>
         </div>
       </div>

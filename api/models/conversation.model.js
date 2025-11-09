@@ -1,37 +1,120 @@
+// models/conversation.model.js
 import mongoose from "mongoose";
-const { Schema } = mongoose;
 
-const ConversationSchema = new Schema(
+const ConversationSchema = new mongoose.Schema(
   {
-    id: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    sellerId: {
-      type: String,
-      required: true,
-    },
-    buyerId: {
-      type: String,
-      required: true,
-    },
-    readBySeller: {
-      type: Boolean,
-      required: true,
-    },
-    readByBuyer: {
-      type: Boolean,
-      required: true,
-    },
+    participants: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true
+        },
+        userName: {
+          type: String,
+          required: true
+        },
+        userType: {
+          type: String,
+          enum: ['student', 'educator'],
+          required: true
+        }
+      }
+    ],
     lastMessage: {
-      type: String,
-      required: false,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message'
     },
+    unreadCount: {
+      type: Map,
+      of: Number,
+      default: new Map()
+    },
+    bookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Booking',
+      default: null
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    lastActivity: {
+      type: Date,
+      default: Date.now
+    }
   },
-  {
+  { 
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Indexes for efficient querying
+ConversationSchema.index({ 'participants.userId': 1 });
+ConversationSchema.index({ bookingId: 1 });
+ConversationSchema.index({ lastActivity: -1 });
+ConversationSchema.index({ isActive: 1 });
+
+// Virtual for getting the other participant
+ConversationSchema.virtual('otherParticipant').get(function() {
+  if (this.currentUserId) {
+    return this.participants.find(p => p.userId.toString() !== this.currentUserId.toString());
+  }
+  return null;
+});
+
+// Method to get unread count for a specific user
+ConversationSchema.methods.getUnreadCount = function(userId) {
+  return this.unreadCount.get(userId.toString()) || 0;
+};
+
+// Method to increment unread count for a specific user
+ConversationSchema.methods.incrementUnreadCount = async function(userId) {
+  const currentCount = this.getUnreadCount(userId);
+  this.unreadCount.set(userId.toString(), currentCount + 1);
+  return await this.save();
+};
+
+// Method to reset unread count for a specific user
+ConversationSchema.methods.resetUnreadCount = async function(userId) {
+  this.unreadCount.set(userId.toString(), 0);
+  return await this.save();
+};
+
+// Static method to find or create conversation between two users
+ConversationSchema.statics.findOrCreateConversation = async function(user1Id, user1Name, user1Type, user2Id, user2Name, user2Type, bookingId = null) {
+  // Check if conversation already exists
+  const existingConversation = await this.findOne({
+    'participants.userId': { $all: [user1Id, user2Id] },
+    participants: { $size: 2 },
+    isActive: true
+  });
+
+  if (existingConversation) {
+    return existingConversation;
+  }
+
+  // Create new conversation
+  const newConversation = new this({
+    participants: [
+      {
+        userId: user1Id,
+        userName: user1Name,
+        userType: user1Type
+      },
+      {
+        userId: user2Id,
+        userName: user2Name,
+        userType: user2Type
+      }
+    ],
+    bookingId,
+    lastActivity: new Date()
+  });
+
+  return await newConversation.save();
+};
 
 export default mongoose.model("Conversation", ConversationSchema);

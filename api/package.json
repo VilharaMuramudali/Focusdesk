@@ -5,12 +5,18 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "train-ai": "cd python-ai && python run_training.py",
+    "data-pipeline": "cd python-ai && python data_pipeline.py",
+    "start-ai": "cd python-ai && python app.py",
+    "test-ai": "cd python-ai && python test_ai_service.py",
+    "install-ai-deps": "cd python-ai && pip install -r requirements.txt"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.11.0",
     "bcrypt": "^5.1.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -20,11 +26,12 @@
     "googleapis": "^148.0.0",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^6.9.2",
-    "multer": "^1.4.5-lts.2",
+    "multer": "^1.4.4",
     "multer-gridfs-storage": "^5.0.2",
     "nodemon": "^2.0.20",
     "path": "^0.12.7",
     "stream": "^0.0.3",
-    "stripe": "^11.11.0"
+    "stripe": "^11.11.0",
+    "ws": "^8.18.3"
   }
 }

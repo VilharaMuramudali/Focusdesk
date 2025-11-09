@@ -2,10 +2,13 @@ import React from 'react';
 import { FaDownload, FaEye, FaCheck, FaCheckDouble } from 'react-icons/fa';
 import './MessageBubble.scss';
 
-const MessageBubble = ({ message, isOwnMessage, showAvatar = true }) => {
+const MessageBubble = ({ message, isOwnMessage, showAvatar = true, isSystemMessage = false }) => {
   const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: 'numeric',
+    const messageDate = new Date(date);
+    return messageDate.toLocaleDateString('en-US', {
+      weekday: 'long'
+    }) + ' ' + messageDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
       hour12: true
     });
@@ -63,6 +66,24 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar = true }) => {
       </div>
     );
   };
+
+  if (isSystemMessage) {
+    return (
+      <div className="message-bubble system">
+        <div className="message-content">
+          <div className="message-body system-message">
+            <div className="system-icon">ℹ️</div>
+            <div className="text-content">{message.content}</div>
+          </div>
+          <div className="message-footer">
+            <span className="message-time">
+              {formatTime(message.createdAt)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`message-bubble ${isOwnMessage ? 'own' : 'other'}`}>

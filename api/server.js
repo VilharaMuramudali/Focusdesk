@@ -17,9 +17,12 @@ import recommendationRoute from "./routes/recommendation.routes.js";
 import messageRoute from "./routes/message.route.js";
 import conversationRoute from "./routes/conversation.routes.js";
 import chatUploadRoute from "./routes/chatUpload.routes.js";
+import reviewRoute from "./routes/review.route.js";
+import learningRoute from "./routes/learning.routes.js";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { verifyToken } from "./middleware/jwt.js";
+import mlServiceManager from "./services/ml/mlServiceManager.js";
 const app = express();
 dotenv.config();
 mongoose.set("strictQuery", true);
@@ -273,6 +276,8 @@ app.use("/api/recommend", recommendationRoute);
 app.use("/api/messages", messageRoute);
 app.use("/api/conversations", conversationRoute);
 app.use("/api/upload", chatUploadRoute);
+app.use("/api/reviews", reviewRoute);
+app.use("/api/learning", learningRoute);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -287,7 +292,56 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-httpServer.listen(8800, () => {
-  connect();
+httpServer.listen(8800, async () => {
+  await connect();
   console.log("Backend server (with Socket.io and Chat functionality) is running on port 8800!");
+  
+  // Start ML service automatically
+  try {
+    console.log("\n🤖 Initializing ML Recommendation Service...");
+    
+    // Check if ML service should be enabled (can be disabled via env var)
+    const mlEnabled = process.env.ML_SERVICE_ENABLED !== 'false';
+    
+    if (mlEnabled) {
+      // Start ML service
+      const mlStarted = await mlServiceManager.startService();
+      
+      if (mlStarted) {
+        console.log("✅ ML service started successfully!");
+        
+        // Start automatic training (every 24 hours by default, configurable via env)
+        const trainingIntervalHours = parseInt(process.env.ML_TRAINING_INTERVAL_HOURS || '24');
+        mlServiceManager.startAutomaticTraining(trainingIntervalHours);
+        
+        console.log(`🔄 Automatic model training scheduled every ${trainingIntervalHours} hours`);
+      } else {
+        console.warn("⚠️ ML service could not be started. System will use fallback recommendations.");
+      }
+    } else {
+      console.log("ℹ️ ML service is disabled (ML_SERVICE_ENABLED=false)");
+    }
+  } catch (error) {
+    console.error("❌ Error starting ML service:", error.message);
+    console.warn("⚠️ System will continue with fallback recommendations.");
+  }
+  
+  // Graceful shutdown handler
+  process.on('SIGTERM', async () => {
+    console.log('🛑 SIGTERM received, shutting down gracefully...');
+    await mlServiceManager.stopService();
+    httpServer.close(() => {
+      console.log('✅ Server closed');
+      process.exit(0);
+    });
+  });
+  
+  process.on('SIGINT', async () => {
+    console.log('🛑 SIGINT received, shutting down gracefully...');
+    await mlServiceManager.stopService();
+    httpServer.close(() => {
+      console.log('✅ Server closed');
+      process.exit(0);
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import createError from "../utils/createError.js";
+import mongoose from "mongoose";
 
 export const deleteUser = async (req, res, next) => {
   try {
@@ -22,15 +23,34 @@ export const deleteUser = async (req, res, next) => {
 
 export const getUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const userId = req.params.id;
+    console.log('getUser: Fetching user with ID:', userId);
+    
+    // Validate user ID format
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      console.log('getUser: Invalid user ID format:', userId);
+      return next(createError(400, "Invalid user ID format"));
+    }
+    
+    const user = await User.findById(userId);
+    console.log('getUser: User found:', user ? 'Yes' : 'No');
     
     if (!user) {
+      console.log('getUser: User not found for ID:', userId);
       return next(createError(404, "User not found!"));
     }
     
     const { password, ...info } = user._doc;
+    console.log('getUser: Sending user info:', {
+      _id: info._id,
+      username: info.username,
+      email: info.email
+    });
+    
     res.status(200).send(info);
   } catch (err) {
+    console.error('getUser: Error fetching user:', err);
+    console.error('getUser: Error stack:', err.stack);
     next(createError(500, "Failed to retrieve user."));
   }
 };

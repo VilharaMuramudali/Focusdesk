@@ -4,7 +4,6 @@ import {
   FaHome,
   FaSearch,
   FaCalendarAlt,
-  FaChartLine,
   FaBook,
   FaEnvelope,
   FaCreditCard,
@@ -55,7 +54,6 @@ export default function StudentSidebar({ onLogout, username }) {
       to: "/my-sessions",
       badge: pendingSessionsCount > 0 ? pendingSessionsCount : null
     },
-    { label: "Learning Progress", icon: <FaChartLine />, to: "/learning-progress" },
     { label: "My Learning", icon: <FaBook />, to: "/my-learning" },
     { label: "Messages", icon: <FaEnvelope />, to: "/messages" },
     { label: "Payments", icon: <FaCreditCard />, to: "/payments" },

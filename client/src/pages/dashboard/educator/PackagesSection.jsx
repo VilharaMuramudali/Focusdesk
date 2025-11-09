@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FaStar, FaStarHalfAlt, FaPlus, FaEdit, FaTrash, FaCheck } from "react-icons/fa";
+import { FaStar, FaStarHalfAlt, FaRegStar, FaPlus, FaEdit, FaTrash, FaCheck } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
+import { SkeletonPackageGrid } from "../../../components/skeleton/Skeleton";
 import "./PackagesSection.scss";
 
 export default function PackagesSection() {
@@ -31,11 +32,22 @@ export default function PackagesSection() {
 
   useEffect(() => {
     fetchPackages();
+
+    // Listen for review submissions to refresh displayed package ratings
+    const handleReviewSubmitted = () => {
+      fetchPackages();
+    };
+    window.addEventListener('package-review-submitted', handleReviewSubmitted);
+
+    return () => {
+      window.removeEventListener('package-review-submitted', handleReviewSubmitted);
+    };
   }, []);
 
   const fetchPackages = async () => {
     try {
       setLoading(true);
+      console.log("Fetching educator packages...");
       const response = await newRequest.get("/packages/educator");
       console.log("Fetched packages:", response.data);
       
@@ -45,11 +57,13 @@ export default function PackagesSection() {
         languages: Array.isArray(pkg.languages) ? pkg.languages : []
       }));
       
+      console.log("Packages with languages:", packagesWithLanguages);
       setPackages(packagesWithLanguages);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching packages:", err);
-      setError("Failed to load packages");
+      console.error("Error response:", err.response?.data);
+      setError(`Failed to load packages: ${err.response?.data?.message || err.message}`);
       setLoading(false);
     }
   };
@@ -186,7 +200,7 @@ export default function PackagesSection() {
     }
   };
 
-  const renderRatingStars = (rating) => {
+  const renderRatingStars = (rating, totalReviews = 0) => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
@@ -199,10 +213,28 @@ export default function PackagesSection() {
       stars.push(<FaStarHalfAlt key="half-star" className="star-icon half" />);
     }
     
+    // Add empty stars to complete 5 stars
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<FaRegStar key={`empty-${i}`} className="star-icon empty" />);
+    }
+    
     return stars;
   };
 
-  if (loading) return <div className="loading-container">Loading packages...</div>;
+  if (loading) {
+    return (
+      <div className="packages-container">
+        <div className="profile-header">
+          <h2>My Packages</h2>
+          <button className="create-package-btn" disabled>
+            Create Package
+          </button>
+        </div>
+        <SkeletonPackageGrid />
+      </div>
+    );
+  }
 
   return (
     <div className="packages-container">
@@ -355,8 +387,11 @@ export default function PackagesSection() {
                 <img src={pkg.thumbnail || "/calculator-placeholder.jpg"} alt={pkg.title} />
               </div>
               <div className="package-rating">
-                {renderRatingStars(pkg.rating || 4.8)}
-                <span className="rating-value">{pkg.rating || 4.8}</span>
+                {renderRatingStars(pkg.rating || 0, pkg.totalReviews || 0)}
+                <span className="rating-value">
+                  {pkg.rating > 0 ? pkg.rating.toFixed(1) : 'No ratings'}
+                  {pkg.totalReviews > 0 && ` (${pkg.totalReviews} reviews)`}
+                </span>
               </div>
               <h3 className="package-title">{pkg.title}</h3>
               <p className="package-description">{pkg.description}</p>

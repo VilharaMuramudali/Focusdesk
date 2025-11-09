@@ -129,6 +129,39 @@ export const getDashboardRecommendations = async (req, res, next) => {
 async function getUserPreferences(studentId) {
   try {
     const user = await User.findById(studentId);
+    
+    // PRIORITY: Use learningPreferences from user profile first (immediate after login)
+    if (user.learningPreferences && user.learningPreferences.subjects && user.learningPreferences.subjects.length > 0) {
+      const profileSubjects = user.learningPreferences.subjects;
+      
+      // Also get price preferences from interactions if available
+      const interactions = await UserInteraction.find({ userId: studentId })
+        .populate('packageId')
+        .sort({ timestamp: -1 })
+        .limit(50);
+      
+      const pricePreferences = interactions
+        .filter(interaction => interaction.packageId?.rate)
+        .map(interaction => interaction.packageId.rate);
+      
+      const avgPrice = pricePreferences.length > 0 
+        ? pricePreferences.reduce((a, b) => a + b, 0) / pricePreferences.length 
+        : null;
+      
+      return {
+        subjects: profileSubjects,
+        preferredPrice: avgPrice,
+        interactionCount: interactions.length,
+        learningLevel: user.learningPreferences.academicLevel || user.educationLevel || 'beginner',
+        preferredLanguages: user.languages || ['English'],
+        learningStyle: user.learningPreferences.learningStyle || 'visual',
+        sessionDuration: user.learningPreferences.sessionDuration || '1hour',
+        timePreferences: user.learningPreferences.timePreferences || [],
+        fromProfile: true // Indicates preferences came from user profile
+      };
+    }
+    
+    // FALLBACK: Extract from interactions and activities if no profile preferences
     const interactions = await UserInteraction.find({ userId: studentId })
       .populate('packageId')
       .sort({ timestamp: -1 })
@@ -182,7 +215,8 @@ async function getUserPreferences(studentId) {
       interactionCount: interactions.length,
       lastActivity: activities[0]?.timestamp,
       learningLevel: user.educationLevel || 'beginner',
-      preferredLanguages: user.languages || ['English']
+      preferredLanguages: user.languages || ['English'],
+      fromProfile: false // Indicates preferences were inferred from behavior
     };
     
   } catch (error) {
@@ -192,7 +226,8 @@ async function getUserPreferences(studentId) {
       preferredPrice: null,
       interactionCount: 0,
       learningLevel: 'beginner',
-      preferredLanguages: ['English']
+      preferredLanguages: ['English'],
+      fromProfile: false
     };
   }
 }
@@ -212,38 +247,96 @@ async function getUserBehavior(studentId) {
     // Analyze interaction patterns
     const interactionTypes = {};
     const searchPatterns = [];
+    const searchKeywords = [];
     const timePatterns = [];
+    const packageTimeSpent = {}; // Track time spent per package
     
     interactions.forEach(interaction => {
       interactionTypes[interaction.interactionType] = 
         (interactionTypes[interaction.interactionType] || 0) + 1;
+      
+      // Collect search keywords from interactions
+      if (interaction.context?.searchKeywords && Array.isArray(interaction.context.searchKeywords)) {
+        searchKeywords.push(...interaction.context.searchKeywords);
+      }
+      
+      // Track time spent on packages
+      if (interaction.packageId && interaction.metadata?.timeSpent) {
+        const packageId = interaction.packageId._id?.toString() || interaction.packageId.toString();
+        if (!packageTimeSpent[packageId]) {
+          packageTimeSpent[packageId] = { totalTime: 0, count: 0, engagement: [] };
+        }
+        packageTimeSpent[packageId].totalTime += interaction.metadata.timeSpent || 0;
+        packageTimeSpent[packageId].count += 1;
+        if (interaction.metadata.engagementLevel) {
+          packageTimeSpent[packageId].engagement.push(interaction.metadata.engagementLevel);
+        }
+      }
     });
     
     activities.forEach(activity => {
       if (activity.type === 'search') {
-        searchPatterns.push(activity.details?.query || '');
+        const query = activity.details?.query || '';
+        if (query.length > 2) {
+          searchPatterns.push(query);
+        }
+        // Also extract keywords from search activity details
+        if (activity.details?.keywords && Array.isArray(activity.details.keywords)) {
+          searchKeywords.push(...activity.details.keywords);
+        }
       }
       timePatterns.push(activity.timestamp);
     });
     
-    // Extract common search terms
+    // Extract common search terms from queries
     const searchTerms = searchPatterns
       .filter(term => term.length > 2)
       .map(term => term.toLowerCase());
     
+    // Combine search terms and keywords
+    const allSearchTerms = [...searchTerms, ...searchKeywords]
+      .filter(term => term && term.length > 2)
+      .map(term => term.toLowerCase().trim());
+    
     const termCounts = {};
-    searchTerms.forEach(term => {
+    allSearchTerms.forEach(term => {
       termCounts[term] = (termCounts[term] || 0) + 1;
     });
     
     const commonSearchTerms = Object.entries(termCounts)
       .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
+      .slice(0, 15) // Increased to 15 for better coverage
       .map(([term]) => term);
+    
+    // Get top packages by time spent (high engagement)
+    const topEngagedPackages = Object.entries(packageTimeSpent)
+      .filter(([_, data]) => data.count > 0 && data.totalTime > 30) // At least 30 seconds total
+      .sort(([_, a], [__, b]) => {
+        // Sort by average time spent and engagement level
+        const avgTimeA = a.totalTime / a.count;
+        const avgTimeB = b.totalTime / b.count;
+        const highEngagementA = a.engagement.filter(e => e === 'high').length;
+        const highEngagementB = b.engagement.filter(e => e === 'high').length;
+        
+        if (highEngagementA !== highEngagementB) {
+          return highEngagementB - highEngagementA;
+        }
+        return avgTimeB - avgTimeA;
+      })
+      .slice(0, 10)
+      .map(([packageId, data]) => ({
+        packageId,
+        averageTime: data.totalTime / data.count,
+        totalTime: data.totalTime,
+        count: data.count,
+        highEngagementCount: data.engagement.filter(e => e === 'high').length
+      }));
     
     return {
       interactionTypes,
       commonSearchTerms,
+      searchKeywords: [...new Set(searchKeywords)], // Unique keywords
+      topEngagedPackages,
       totalInteractions: interactions.length,
       totalActivities: activities.length,
       lastInteraction: interactions[0]?.timestamp,
@@ -256,6 +349,8 @@ async function getUserBehavior(studentId) {
     return {
       interactionTypes: {},
       commonSearchTerms: [],
+      searchKeywords: [],
+      topEngagedPackages: [],
       totalInteractions: 0,
       totalActivities: 0,
       preferredInteractionType: 'view'
@@ -355,8 +450,9 @@ async function getPersonalizedRecommendations(studentId, preferences, behavior) 
 // Calculate personalization score for a package
 function calculatePersonalizationScore(packageItem, preferences, behavior) {
   let score = 0;
+  const packageId = packageItem._id?.toString() || packageItem._id;
   
-  // Subject match (highest weight)
+  // Subject match (highest weight - 40%)
   if (preferences.subjects && packageItem.subjects) {
     const subjectMatches = preferences.subjects.filter(subject =>
       packageItem.subjects.some(pkgSubject => 
@@ -364,33 +460,73 @@ function calculatePersonalizationScore(packageItem, preferences, behavior) {
         subject.toLowerCase().includes(pkgSubject.toLowerCase())
       )
     );
-    score += subjectMatches.length * 10;
+    score += subjectMatches.length * 15; // Increased weight
   }
   
-  // Search term match
-  if (behavior.commonSearchTerms && packageItem.title) {
-    const searchMatches = behavior.commonSearchTerms.filter(term =>
-      packageItem.title.toLowerCase().includes(term.toLowerCase()) ||
-      packageItem.desc?.toLowerCase().includes(term.toLowerCase())
+  // Search term match (30% weight - increased importance)
+  if (behavior.commonSearchTerms && behavior.commonSearchTerms.length > 0) {
+    const title = (packageItem.title || '').toLowerCase();
+    const desc = (packageItem.desc || packageItem.description || '').toLowerCase();
+    const subjects = (packageItem.subjects || []).map(s => s.toLowerCase()).join(' ');
+    
+    const searchMatches = behavior.commonSearchTerms.filter(term => {
+      const lowerTerm = term.toLowerCase();
+      return title.includes(lowerTerm) || 
+             desc.includes(lowerTerm) || 
+             subjects.includes(lowerTerm);
+    });
+    score += searchMatches.length * 8; // Increased weight
+  }
+  
+  // Search keywords match (additional weight)
+  if (behavior.searchKeywords && behavior.searchKeywords.length > 0) {
+    const title = (packageItem.title || '').toLowerCase();
+    const desc = (packageItem.desc || packageItem.description || '').toLowerCase();
+    const subjects = (packageItem.subjects || []).map(s => s.toLowerCase()).join(' ');
+    
+    const keywordMatches = behavior.searchKeywords.filter(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+      return title.includes(lowerKeyword) || 
+             desc.includes(lowerKeyword) || 
+             subjects.includes(lowerKeyword);
+    });
+    score += keywordMatches.length * 6;
+  }
+  
+  // Time spent / engagement boost (20% weight - NEW)
+  if (behavior.topEngagedPackages && behavior.topEngagedPackages.length > 0) {
+    const engagedPackage = behavior.topEngagedPackages.find(
+      ep => ep.packageId === packageId
     );
-    score += searchMatches.length * 5;
+    if (engagedPackage) {
+      // High engagement gets significant boost
+      score += 20;
+      // Additional boost for multiple high-engagement views
+      if (engagedPackage.highEngagementCount > 1) {
+        score += engagedPackage.highEngagementCount * 5;
+      }
+      // Average time spent boost (max 10 points)
+      if (engagedPackage.averageTime > 30) {
+        score += Math.min(engagedPackage.averageTime / 10, 10);
+      }
+    }
   }
   
-  // Price preference match
-  if (preferences.preferredPrice && packageItem.price) {
-    const priceDiff = Math.abs(packageItem.price - preferences.preferredPrice);
+  // Price preference match (5% weight)
+  if (preferences.preferredPrice && packageItem.rate) {
+    const priceDiff = Math.abs(packageItem.rate - preferences.preferredPrice);
     const priceScore = Math.max(0, 10 - (priceDiff / preferences.preferredPrice) * 10);
-    score += priceScore;
+    score += priceScore * 0.5; // Reduced weight
   }
   
-  // Rating boost
+  // Rating boost (3% weight)
   if (packageItem.rating) {
-    score += packageItem.rating * 2;
+    score += packageItem.rating * 1; // Reduced weight
   }
   
-  // Popularity boost
+  // Popularity boost (2% weight)
   if (packageItem.totalOrders) {
-    score += Math.min(packageItem.totalOrders / 10, 5);
+    score += Math.min(packageItem.totalOrders / 20, 5); // Reduced weight
   }
   
   return score;
@@ -434,17 +570,31 @@ async function getWorkPlanRecommendations(preferences, behavior) {
 // Track user interaction with recommendations
 export const trackRecommendationInteraction = async (req, res, next) => {
   try {
-    const { packageId, interactionType, recommendationSource } = req.body;
+    const { packageId, interactionType, recommendationSource, timeSpent, viewStartTime, viewEndTime } = req.body;
     const userId = req.userId;
+    
+    // Calculate engagement level based on time spent
+    let engagementLevel = 'medium';
+    if (timeSpent) {
+      if (timeSpent > 60) engagementLevel = 'high'; // More than 60 seconds
+      else if (timeSpent < 10) engagementLevel = 'low'; // Less than 10 seconds
+    }
     
     // Record interaction
     await UserInteraction.create({
       userId,
       packageId,
       interactionType,
+      context: {
+        viewStartTime: viewStartTime ? new Date(viewStartTime) : undefined,
+        viewEndTime: viewEndTime ? new Date(viewEndTime) : undefined,
+        sessionDuration: timeSpent || 0
+      },
       metadata: {
         isRecommendation: true,
-        source: recommendationSource || 'dashboard'
+        source: recommendationSource || 'dashboard',
+        timeSpent: timeSpent || 0,
+        engagementLevel
       },
       timestamp: new Date()
     });
@@ -457,7 +607,8 @@ export const trackRecommendationInteraction = async (req, res, next) => {
       details: {
         packageId,
         interactionType,
-        source: recommendationSource
+        source: recommendationSource,
+        timeSpent: timeSpent || 0
       },
       timestamp: new Date()
     });
@@ -469,6 +620,132 @@ export const trackRecommendationInteraction = async (req, res, next) => {
     next(createError(500, "Failed to track interaction"));
   }
 };
+
+// Track search query with keywords extraction
+export const trackSearch = async (req, res, next) => {
+  try {
+    const { searchQuery, filters } = req.body;
+    const userId = req.userId;
+    
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      return next(createError(400, "Search query is required"));
+    }
+    
+    // Extract keywords from search query
+    const keywords = extractKeywords(searchQuery);
+    
+    // Record search interaction
+    await UserInteraction.create({
+      userId,
+      interactionType: 'view',
+      context: {
+        searchQuery: searchQuery.trim(),
+        searchKeywords: keywords,
+        filters: filters || {}
+      },
+      metadata: {
+        isRecommendation: false
+      },
+      timestamp: new Date()
+    });
+    
+    // Log activity
+    await Activity.create({
+      studentId: userId,
+      type: 'search',
+      subject: 'search',
+      details: {
+        query: searchQuery.trim(),
+        keywords: keywords,
+        filters: filters || {}
+      },
+      timestamp: new Date()
+    });
+    
+    res.status(200).json({ success: true, keywords });
+    
+  } catch (error) {
+    console.error('Error tracking search:', error);
+    next(createError(500, "Failed to track search"));
+  }
+};
+
+// Track package view with time spent
+export const trackPackageView = async (req, res, next) => {
+  try {
+    const { packageId, timeSpent, viewStartTime, viewEndTime, searchQuery, searchKeywords } = req.body;
+    const userId = req.userId;
+    
+    if (!packageId) {
+      return next(createError(400, "Package ID is required"));
+    }
+    
+    // Calculate engagement level based on time spent
+    let engagementLevel = 'medium';
+    if (timeSpent) {
+      if (timeSpent > 60) engagementLevel = 'high'; // More than 60 seconds
+      else if (timeSpent < 10) engagementLevel = 'low'; // Less than 10 seconds
+    }
+    
+    // Record interaction
+    await UserInteraction.create({
+      userId,
+      packageId,
+      interactionType: 'view',
+      context: {
+        searchQuery: searchQuery || null,
+        searchKeywords: searchKeywords || [],
+        viewStartTime: viewStartTime ? new Date(viewStartTime) : undefined,
+        viewEndTime: viewEndTime ? new Date(viewEndTime) : undefined,
+        sessionDuration: timeSpent || 0
+      },
+      metadata: {
+        isRecommendation: false,
+        timeSpent: timeSpent || 0,
+        engagementLevel
+      },
+      timestamp: new Date()
+    });
+    
+    // Log activity
+    await Activity.create({
+      studentId: userId,
+      type: 'view_package',
+      subject: 'package',
+      details: {
+        packageId,
+        timeSpent: timeSpent || 0,
+        engagementLevel,
+        searchQuery: searchQuery || null
+      },
+      timestamp: new Date()
+    });
+    
+    res.status(200).json({ success: true });
+    
+  } catch (error) {
+    console.error('Error tracking package view:', error);
+    next(createError(500, "Failed to track package view"));
+  }
+};
+
+// Helper function to extract keywords from search query
+function extractKeywords(searchQuery) {
+  if (!searchQuery || typeof searchQuery !== 'string') return [];
+  
+  // Remove common stop words
+  const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'must', 'can'];
+  
+  // Split into words and filter
+  const words = searchQuery.toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.includes(word))
+    .map(word => word.trim())
+    .filter(word => word.length > 0);
+  
+  // Remove duplicates and return
+  return [...new Set(words)];
+}
 
 // Get recommendation metrics (for analytics)
 export const getRecommendationMetrics = async (req, res, next) => {
@@ -563,5 +840,35 @@ export const getAvailableAlgorithms = async (req, res, next) => {
     res.status(200).json(algorithms);
   } catch (error) {
     next(createError(500, "Failed to get algorithms"));
+  }
+};
+
+export const getEvaluationResults = async (req, res, next) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    // Path to evaluation results file
+    const evaluationFile = path.join(process.cwd(), 'api', 'python-ai', 'models', 'evaluation_results.json');
+    
+    if (!fs.existsSync(evaluationFile)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Evaluation results not found. Run model evaluation first.'
+      });
+    }
+    
+    // Read and parse evaluation results
+    const evaluationData = fs.readFileSync(evaluationFile, 'utf8');
+    const results = JSON.parse(evaluationData);
+    
+    res.status(200).json({
+      success: true,
+      results: results
+    });
+    
+  } catch (error) {
+    console.error('Error getting evaluation results:', error);
+    next(createError(500, "Failed to get evaluation results"));
   }
 };

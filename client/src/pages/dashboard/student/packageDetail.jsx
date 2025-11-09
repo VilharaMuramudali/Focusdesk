@@ -5,8 +5,8 @@ import newRequest from "../../../utils/newRequest";
 import { useChat } from '../../../context/ChatContext.jsx';
 import { useNotifications } from '../../../hooks/useNotifications';
 import BookingForm from "../../../components/bookingForm/BookingForm";
+import RatingDisplay from "../../../components/RatingDisplay";
 import "./packageDetail.scss";
-import Footer from "../../../components/footer/Footer";
 
 function PackageDetail() {
   const { id } = useParams();
@@ -23,28 +23,98 @@ function PackageDetail() {
   const { createNewConversation, sendTextMessage } = useChat();
   const { showSuccessNotification, showErrorNotification } = useNotifications();
 
+  // Track package view with time spent
+  useEffect(() => {
+    const viewStartTime = new Date();
+    let timeSpent = 0;
+    
+    // Function to track view end
+    const trackViewEnd = async () => {
+      const viewEndTime = new Date();
+      timeSpent = Math.floor((viewEndTime - viewStartTime) / 1000); // Time in seconds
+      
+      if (id && timeSpent > 0) {
+        try {
+          // Get search query from URL params or sessionStorage
+          const searchQuery = new URLSearchParams(window.location.search).get('search') || 
+                             sessionStorage.getItem('lastSearchQuery') || null;
+          const searchKeywords = searchQuery ? 
+            searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 2) : [];
+          
+          await newRequest.post('/recommend/track-package-view', {
+            packageId: id,
+            timeSpent,
+            viewStartTime: viewStartTime.toISOString(),
+            viewEndTime: viewEndTime.toISOString(),
+            searchQuery,
+            searchKeywords
+          });
+        } catch (error) {
+          console.error('Error tracking package view:', error);
+        }
+      }
+    };
+    
+    // Track when component unmounts or page visibility changes
+    const handleBeforeUnload = () => {
+      trackViewEnd();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        trackViewEnd();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      trackViewEnd();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [id]);
+
   useEffect(() => {
     const fetchPackageData = async () => {
       try {
         setLoading(true);
+        console.log('PackageDetail: Fetching package with ID:', id);
+        
         const response = await newRequest.get(`/packages/${id}`);
+        console.log('PackageDetail: Package response:', response.data);
         setPackageData(response.data);
 
-        // Fetch educator details
+        // Use populated educator data from package response
         if (response.data.educatorId) {
-          const educatorResponse = await newRequest.get(`/users/${response.data.educatorId}`);
-          setEducator(educatorResponse.data);
+          console.log('PackageDetail: Educator data from package:', response.data.educatorId);
+          setEducator(response.data.educatorId);
+        } else {
+          console.log('PackageDetail: No educatorId found in package data');
         }
 
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching package details:", err);
-        setError("Failed to load package details");
+        console.error("PackageDetail: Error fetching package details:", err);
+        console.error("PackageDetail: Error response:", err.response?.data);
+        console.error("PackageDetail: Error status:", err.response?.status);
+        setError(`Failed to load package details: ${err.response?.data?.message || err.message}`);
         setLoading(false);
       }
     };
 
     fetchPackageData();
+
+    // Listen for global review submission to refresh ratings dynamically
+    const handleReviewSubmitted = (evt) => {
+      if (evt?.detail?.packageId === id) {
+        fetchPackageData();
+      }
+    };
+
+    window.addEventListener('package-review-submitted', handleReviewSubmitted);
+    return () => window.removeEventListener('package-review-submitted', handleReviewSubmitted);
   }, [id]);
 
   const handleBookSession = () => {
@@ -114,7 +184,7 @@ function PackageDetail() {
   };
 
   // Rating stars component
-  const RatingStars = ({ rating = 4.8 }) => {
+  const RatingStars = ({ rating = 0, totalReviews = 0 }) => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
@@ -129,7 +199,10 @@ function PackageDetail() {
       }
     }
     
-    return <div className="rating-stars">{stars} <span className="rating-value">({rating})</span></div>;
+    const ratingText = rating > 0 ? `(${rating.toFixed(1)})` : '(No ratings)';
+    const reviewText = totalReviews > 0 ? ` ${totalReviews} reviews` : '';
+    
+    return <div className="rating-stars">{stars} <span className="rating-value">{ratingText}{reviewText}</span></div>;
   };
 
   if (loading) {
@@ -165,7 +238,6 @@ function PackageDetail() {
 
         <div className="package-header">
           <h1>{packageData.title}</h1>
-          <RatingStars rating={packageData.rating || 4.8} />
           <div className="package-meta">
             {packageData.keywords && packageData.keywords.map((keyword, index) => (
               <span key={index} className="keyword-badge">{keyword}</span>
@@ -223,6 +295,18 @@ function PackageDetail() {
                   </div>
                 </div>
               )}
+
+              {/* Rating Section - Moved here from header */}
+              <div className="package-rating-section">
+                <h3>Package Ratings & Reviews</h3>
+                <RatingDisplay 
+                  rating={packageData.rating || 0} 
+                  totalReviews={packageData.totalReviews || 0}
+                  ratingBreakdown={packageData.ratingBreakdown || {}}
+                  variant="detailed"
+                  className="package-rating-display"
+                />
+              </div>
             </div>
           </div>
 
@@ -336,8 +420,6 @@ function PackageDetail() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

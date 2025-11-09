@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaCircle, FaEllipsisV } from 'react-icons/fa';
 import { useChat } from '../../context/ChatContext.jsx';
 import OnlineStatus from './OnlineStatus';
+import LoadingSpinner from '../LoadingSpinner';
 import './ChatSidebar.scss';
 
 const ChatSidebar = ({ onConversationSelect, onCreateNewChat }) => {
@@ -47,14 +48,15 @@ const ChatSidebar = ({ onConversationSelect, onCreateNewChat }) => {
     
     const messageDate = new Date(date);
     const now = new Date();
-    const diffInHours = (now - messageDate) / (1000 * 60 * 60);
+    const diffInMinutes = (now - messageDate) / (1000 * 60);
+    const diffInHours = diffInMinutes / 60;
     
-    if (diffInHours < 24) {
-      return messageDate.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
+    if (diffInMinutes < 1) {
+      return 'Just Now';
+    } else if (diffInMinutes < 60) {
+      return `${Math.floor(diffInMinutes)} minutes ago`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hours ago`;
     } else if (diffInHours < 48) {
       return 'Yesterday';
     } else {
@@ -63,6 +65,10 @@ const ChatSidebar = ({ onConversationSelect, onCreateNewChat }) => {
         day: 'numeric' 
       });
     }
+  };
+
+  const getTotalUnreadCount = () => {
+    return conversations.reduce((total, conv) => total + getUnreadCount(conv), 0);
   };
 
   const getUnreadCount = (conversation) => {
@@ -81,7 +87,9 @@ const ChatSidebar = ({ onConversationSelect, onCreateNewChat }) => {
     return (
       <div className="chat-sidebar">
         <div className="sidebar-header">
-          <h3>Messages</h3>
+          <div className="header-title-section">
+            <h3>Messages</h3>
+          </div>
           <button className="new-chat-btn" onClick={onCreateNewChat}>
             <FaPlus />
           </button>
@@ -91,23 +99,34 @@ const ChatSidebar = ({ onConversationSelect, onCreateNewChat }) => {
             <FaSearch />
             <input 
               type="text" 
-              placeholder="Search conversations..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
         <div className="conversations-list">
-          <div className="loading-spinner">Loading conversations...</div>
+          <LoadingSpinner 
+            size="small" 
+            text="Loading conversations..." 
+            variant="primary"
+          />
         </div>
       </div>
     );
   }
 
+  const totalUnread = getTotalUnreadCount();
+
   return (
     <div className="chat-sidebar">
       <div className="sidebar-header">
-        <h3>Messages</h3>
+        <div className="header-title-section">
+          <h3>Messages</h3>
+          {totalUnread > 0 && (
+            <span className="unread-count-badge">{totalUnread} unread messages</span>
+          )}
+        </div>
         <button className="new-chat-btn" onClick={onCreateNewChat}>
           <FaPlus />
         </button>
@@ -118,7 +137,7 @@ const ChatSidebar = ({ onConversationSelect, onCreateNewChat }) => {
           <FaSearch />
           <input 
             type="text" 
-            placeholder="Search conversations..."
+            placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

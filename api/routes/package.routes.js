@@ -7,7 +7,8 @@ import {
   deletePackage, 
   getPackageById,
   getPublicPackages,
-  getRecommendedPackages
+  getRecommendedPackages,
+  refreshPackageRatings
 } from "../controllers/package.controller.js";
 import { verifyToken, educator } from "../middleware/jwt.js";
 
@@ -23,5 +24,6 @@ router.delete("/:id", verifyToken, educator, deletePackage);
 router.get("/public", getPublicPackages);
 router.get("/recommended", getRecommendedPackages);
 router.get("/:id", getPackageById);
+router.get("/:id/refresh-ratings", refreshPackageRatings); // For testing ratings
 
 export default router;

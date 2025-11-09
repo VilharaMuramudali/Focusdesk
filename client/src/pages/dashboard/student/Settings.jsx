@@ -89,9 +89,10 @@ export default function Settings() {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!profileForm.country.trim()) {
-      newErrors.country = "Country is required";
-    }
+    // Country is now optional
+    // if (!profileForm.country.trim()) {
+    //   newErrors.country = "Country is required";
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

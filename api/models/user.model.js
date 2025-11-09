@@ -26,7 +26,7 @@ const userSchema = new Schema({
   },
   country: {
     type: String,
-    required: true,
+    required: false,
   },
   phone: {
     type: String,

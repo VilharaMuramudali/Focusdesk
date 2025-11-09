@@ -95,6 +95,17 @@ const ChatWindow = ({ conversation, onBack, onCall, onVideoCall }) => {
     }
   };
 
+  const formatMessageTime = (date) => {
+    const messageDate = new Date(date);
+    return messageDate.toLocaleDateString('en-US', {
+      weekday: 'long'
+    }) + ' ' + messageDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const groupMessagesByDate = (messages) => {
     const groups = {};
     messages.forEach(message => {
@@ -125,9 +136,6 @@ const ChatWindow = ({ conversation, onBack, onCall, onVideoCall }) => {
       {/* Chat Header */}
       <div className="chat-header">
         <div className="header-left">
-          <button className="back-btn" onClick={onBack}>
-            <FaArrowLeft />
-          </button>
           <div className="participant-info">
             <div className="participant-avatar">
               {conversation.participantName.charAt(0).toUpperCase()}
@@ -143,27 +151,9 @@ const ChatWindow = ({ conversation, onBack, onCall, onVideoCall }) => {
         </div>
         
         <div className="header-right">
-          <button className="action-btn" onClick={onCall} title="Voice call">
-            <FaPhone />
+          <button className="view-profile-btn" onClick={() => {}}>
+            View Profile
           </button>
-          <button className="action-btn" onClick={onVideoCall} title="Video call">
-            <FaVideo />
-          </button>
-          <div className="options-dropdown">
-            <button 
-              className="options-btn"
-              onClick={() => setShowOptions(!showOptions)}
-            >
-              <FaEllipsisV />
-            </button>
-            {showOptions && (
-              <div className="options-menu">
-                <button>View Profile</button>
-                <button>Block User</button>
-                <button>Report</button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -181,14 +171,21 @@ const ChatWindow = ({ conversation, onBack, onCall, onVideoCall }) => {
                 <div className="date-separator">
                   <span>{date}</span>
                 </div>
-                {dateMessages.map((message, index) => (
-                  <MessageBubble
-                    key={message._id}
-                    message={message}
-                    isOwnMessage={message.senderId === currentUser._id}
-                    showAvatar={index === 0 || dateMessages[index - 1]?.senderId !== message.senderId}
-                  />
-                ))}
+                {dateMessages.map((message, index) => {
+                  // Check if message is from system (booking notifications, etc.)
+                  const isSystemMessage = message.messageType === 'system' || 
+                                         (message.content && message.content.includes('booking'));
+                  
+                  return (
+                    <MessageBubble
+                      key={message._id}
+                      message={message}
+                      isOwnMessage={message.senderId === currentUser._id}
+                      showAvatar={index === 0 || dateMessages[index - 1]?.senderId !== message.senderId}
+                      isSystemMessage={isSystemMessage}
+                    />
+                  );
+                })}
               </div>
             ))}
             {getTypingIndicator()}

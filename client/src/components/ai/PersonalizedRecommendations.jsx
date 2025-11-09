@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaStar, FaUser, FaBook, FaSearch, FaLightbulb, FaChartLine } from 'react-icons/fa';
 import newRequest from '../../utils/newRequest';
+import LoadingSpinner from '../LoadingSpinner';
 import './PersonalizedRecommendations.scss';
 
 const PersonalizedRecommendations = ({ studentId }) => {
@@ -94,10 +95,12 @@ const PersonalizedRecommendations = ({ studentId }) => {
       <div className="personalized-recommendations">
         <div className="recommendations-header">
           <h3>Personalized Recommendations</h3>
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <span>Analyzing your preferences...</span>
-          </div>
+        </div>
+        <LoadingSpinner 
+          size="medium" 
+          text="Analyzing your preferences..." 
+          variant="purple"
+        />
         </div>
       </div>
     );
@@ -180,10 +183,13 @@ const PersonalizedRecommendations = ({ studentId }) => {
                 <div className="tutor-info">
                   <FaUser className="tutor-icon" />
                   <span>{packageItem.tutor.username}</span>
-                  {packageItem.tutor.rating && (
+                  {packageItem.rating > 0 && (
                     <div className="tutor-rating">
                       <FaStar className="star-icon" />
-                      <span>{packageItem.tutor.rating}</span>
+                      <span>{packageItem.rating.toFixed(1)}</span>
+                      {packageItem.totalReviews > 0 && (
+                        <span className="review-count">({packageItem.totalReviews})</span>
+                      )}
                     </div>
                   )}
                 </div>

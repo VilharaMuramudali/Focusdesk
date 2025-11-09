@@ -199,7 +199,8 @@
 
     .booking-actions {
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+      gap: 10px;
       margin-top: 20px;
       padding-top: 15px;
       border-top: 1px solid #eee;
@@ -219,6 +220,35 @@
 
         &:hover {
           background: #0056b3;
+        }
+      }
+
+      .review-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .review-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:hover {
+            background: #218838;
+            transform: translateY(-1px);
+          }
+
+          svg {
+            font-size: 0.8rem;
+          }
         }
       }
     }

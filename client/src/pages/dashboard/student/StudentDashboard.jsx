@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook, 
   FaChevronLeft, FaChevronRight, FaSignOutAlt, FaCaretDown, FaCog, FaUserCircle, 
   FaExternalLinkAlt, FaGlobe, FaPlay, FaFileAlt, FaYoutube } from "react-icons/fa";
+import LoadingSpinner from "../../../components/LoadingSpinner";
+import RatingStars from "../../../components/RatingStars";
 import "./studentDashboard.scss";
 
 import logActivity from '../../../utils/logActivity';
@@ -10,18 +12,18 @@ import newRequest from "../../../utils/newRequest";
 import StudentSidebar from "./StudentSidebar";
 import FindTutors from "./FindTutors";
 import MySessions from "./MySessions";
-import LearningProgress from "./LearningProgress";
 import MyLearning from "./MyLearning";
 import Messages from "./Messages";
 import Payments from "./Payments";
 import Settings from "./Settings";
 import HomeOverview from "./HomeOverview";
+import SharedHeaderBanner from "./SharedHeaderBanner";
 import SubjectPreferencesModal from "../../../components/SubjectPreferencesModal/SubjectPreferencesModal";
 
 function StudentDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeSection, setActiveSection] = useState("tutors"); // New state for section toggle
+  const [activeSection, setActiveSection] = useState("packages"); // New state for section toggle
   const [filters, setFilters] = useState({
     subject: "all",
     priceRange: "all",
@@ -113,6 +115,12 @@ function StudentDashboard() {
     // Fetch packages from backend
     fetchPackages();
 
+    // Listen for package review submissions to refresh packages ratings dynamically
+    const handleReviewSubmitted = () => {
+      fetchPackages();
+    };
+    window.addEventListener('package-review-submitted', handleReviewSubmitted);
+
     // Close user menu when clicking outside
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -121,8 +129,10 @@ function StudentDashboard() {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener('package-review-submitted', handleReviewSubmitted);
     };
   }, []);
 
@@ -273,8 +283,46 @@ function StudentDashboard() {
   };
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+    const newQuery = e.target.value;
+    setSearchQuery(newQuery);
     setCurrentPage(1);
+    
+    // Store search query in sessionStorage for tracking
+    if (newQuery.trim().length > 0) {
+      sessionStorage.setItem('lastSearchQuery', newQuery.trim());
+    } else {
+      sessionStorage.removeItem('lastSearchQuery');
+    }
+  };
+
+  // Debounced search tracking
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim().length > 2) {
+        trackSearchQuery(searchQuery.trim(), filters);
+      }
+    }, 1000); // Track after 1 second of no typing
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, filters]);
+
+  // Track search query
+  const trackSearchQuery = async (query, currentFilters) => {
+    try {
+      await newRequest.post('/recommend/track-search', {
+        searchQuery: query,
+        filters: currentFilters || {}
+      });
+    } catch (error) {
+      console.error('Error tracking search query:', error);
+    }
+  };
+
+  // Handle search on Enter key
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim().length > 0) {
+      trackSearchQuery(searchQuery.trim(), filters);
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -389,24 +437,7 @@ function StudentDashboard() {
     }
   };
 
-  // Rating stars component
-  const RatingStars = ({ rating = 5 }) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<FaStar key={i} className="star filled" />);
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        stars.push(<FaStarHalfAlt key={i} className="star half" />);
-      } else {
-        stars.push(<FaRegStar key={i} className="star empty" />);
-      }
-    }
-    
-    return <div className="rating-stars">{stars} <span className="rating-value">({rating})</span></div>;
-  };
+
 
   if (!currentUser) {
     return <div className="dashboard-error">Please log in to access your dashboard</div>;
@@ -427,7 +458,13 @@ function StudentDashboard() {
         {location.pathname === "/student-dashboard" ? (
                       <HomeOverview onPreferencesUpdate={refreshHomePreferences} refreshKey={preferencesRefreshKey} onEditPreferences={handleEditPreferences} />
         ) : location.pathname === "/find-tutors" ? (
-          <>
+          <div className="find-tutors-section">
+            {/* Header Banner */}
+            <SharedHeaderBanner 
+              title="Discover qualified educators for your learning journey"
+              subtitle=""
+            />
+
             {/* Search and Filters Section */}
             <div className="search-section">
               <div className="search-container">
@@ -435,16 +472,18 @@ function StudentDashboard() {
                   <FaSearch className="search-icon" />
                   <input 
                     type="text" 
-                    placeholder="Search for learning packages, topics, or subjects..." 
+                    placeholder="Search what you need to learn here" 
                     value={searchQuery}
                     onChange={handleSearchChange}
+                    onKeyPress={handleSearchKeyPress}
                   />
                 </div>
                 <div className="filters">
                   <div className="filter-group">
-                    <label>Subject</label>
+                    <label>Domain</label>
                     <select name="subject" value={filters.subject} onChange={handleFilterChange}>
-                      <option value="all">All Subjects</option>
+                      <option value="all">All Domains</option>
+                      <option value="Technology">Technology</option>
                       <option value="Mathematics">Mathematics</option>
                       <option value="Physics">Physics</option>
                       <option value="Chemistry">Chemistry</option>
@@ -484,27 +523,121 @@ function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Section Toggle */}
-              <div className="section-toggle">
+              {/* Tab Navigation */}
+              <div className="tab-navigation">
                 <button 
-                  className={`toggle-btn ${activeSection === "tutors" ? "active" : ""}`}
+                  className={`tab-btn ${activeSection === "packages" ? "active" : ""}`}
+                  onClick={() => handleSectionChange("packages")}
+                >
+                  <FaBook className="tab-icon" />
+                  Packages
+                </button>
+                <button 
+                  className={`tab-btn ${activeSection === "tutors" ? "active" : ""}`}
                   onClick={() => handleSectionChange("tutors")}
                 >
-                  <FaUser className="toggle-icon" />
+                  <FaUser className="tab-icon" />
                   Tutors
                 </button>
                 <button 
-                  className={`toggle-btn ${activeSection === "resources" ? "active" : ""}`}
+                  className={`tab-btn ${activeSection === "resources" ? "active" : ""}`}
                   onClick={() => handleSectionChange("resources")}
                 >
-                  <FaGlobe className="toggle-icon" />
+                  <FaGlobe className="tab-icon" />
                   Related Resources
                 </button>
               </div>
             </div>
 
             {/* Content Section */}
-            {activeSection === "tutors" ? (
+            {activeSection === "packages" ? (
+              <div className="packages-section">
+                <div className="section-header">
+                  <div className="results-info">
+                    Showing {indexOfFirstPackage + 1} - {Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results
+                  </div>
+                  <div className="pagination-controls">
+                    <button className="pagination-btn prev" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
+                      <FaChevronLeft />
+                    </button>
+                    <div className="page-number">01</div>
+                    <button className="pagination-btn next" onClick={() => setCurrentPage(Math.min(Math.ceil(filteredPackages.length / packagesPerPage), currentPage + 1))} disabled={currentPage >= Math.ceil(filteredPackages.length / packagesPerPage)}>
+                      <FaChevronRight />
+                    </button>
+                  </div>
+                </div>
+
+                {filteredPackages.length > 0 ? (
+                  <div className="packages-grid">
+                    {currentPackages.map(pkg => (
+                      <div className="package-card" key={pkg._id}>
+                        <div className="package-illustration">
+                          <div className="illustration-placeholder">
+                            <div className="illustration-icon">
+                              <FaBook size={40} />
+                            </div>
+                          </div>
+                          <div className="language-tags">
+                            {pkg.languages && pkg.languages.map((lang, index) => (
+                              <span key={index} className="lang-tag">{lang}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="package-content">
+                          <div className="package-header">
+                            <h3 className="package-title">{pkg.title}</h3>
+                            <div className="package-price">Rs.{pkg.rate} hr</div>
+                          </div>
+                          <p className="package-description">{pkg.description}</p>
+                          <div className="instructor-info">
+                            <div className="instructor-avatar">
+                              {pkg.educatorId?.img ? (
+                                <img src={pkg.educatorId.img} alt={pkg.educatorId?.username || 'Instructor'} />
+                              ) : (
+                                <div className="instructor-avatar-placeholder">
+                                  <FaUser size={16} />
+                                </div>
+                              )}
+                            </div>
+                            <div className="instructor-details">
+                              <p className="instructor-name">{pkg.educatorId?.username || 'Instructor'}</p>
+                              <div className="rating-section">
+                                <RatingStars 
+                                  rating={pkg.rating || 0} 
+                                  totalReviews={pkg.totalReviews || 0}
+                                  showCount={true}
+                                  size="small"
+                                  variant="compact"
+                                />
+                              </div>
+                            </div>
+                            <Link 
+                              to={`/package/${pkg._id}${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`} 
+                              className="view-btn"
+                              onClick={() => {
+                                // Store search query for package view tracking
+                                if (searchQuery.trim().length > 0) {
+                                  sessionStorage.setItem('lastSearchQuery', searchQuery.trim());
+                                }
+                                console.log('View button clicked for package:', pkg);
+                                console.log('Package ID:', pkg._id);
+                                console.log('Package data:', pkg);
+                              }}
+                            >
+                              View
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-results">
+                    <p>No packages found matching your criteria.</p>
+                  </div>
+                )}
+              </div>
+            ) : activeSection === "tutors" ? (
               // Tutors Section
               <div className="tutors-section">
                 <div className="section-header">
@@ -555,11 +688,27 @@ function StudentDashboard() {
                                 <div className="instructor-details">
                                   <p className="instructor-name">{pkg.educatorId?.username || 'Instructor'}</p>
                                   <div className="rating-section">
-                                    <RatingStars rating={pkg.rating || 4.8} />
+                                    <RatingStars 
+                                      rating={pkg.rating || 0} 
+                                      totalReviews={pkg.totalReviews || 0}
+                                      showCount={true}
+                                      size="small"
+                                      variant="compact"
+                                    />
                                   </div>
                                 </div>
                               </div>
-                              <Link to={`/package/${pkg._id}`} className="view-btn">View</Link>
+                              <Link 
+                                to={`/package/${pkg._id}`} 
+                                className="view-btn"
+                                onClick={() => {
+                                  console.log('View button clicked for package:', pkg);
+                                  console.log('Package ID:', pkg._id);
+                                  console.log('Package data:', pkg);
+                                }}
+                              >
+                                View
+                              </Link>
                             </div>
                           </div>
                         </div>
@@ -613,8 +762,11 @@ function StudentDashboard() {
                   </div>
                 ) : resourcesLoading ? (
                   <div className="loading-resources">
-                    <div className="loading-spinner"></div>
-                    <p>Searching for related resources...</p>
+                    <LoadingSpinner 
+                      size="medium" 
+                      text="Searching for related resources..." 
+                      variant="warning"
+                    />
                   </div>
                 ) : (
                   <>
@@ -678,11 +830,9 @@ function StudentDashboard() {
                 )}
               </div>
             )}
-          </>
+          </div>
         ) : location.pathname === "/my-sessions" ? (
           <MySessions />
-        ) : location.pathname === "/learning-progress" ? (
-          <LearningProgress />
         ) : location.pathname === "/my-learning" ? (
           <MyLearning />
         ) : location.pathname === "/messages" ? (

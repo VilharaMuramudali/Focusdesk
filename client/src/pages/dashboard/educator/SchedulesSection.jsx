@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaCalendarAlt, FaClock, FaUser, FaCheck, FaTimes, FaEye } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
 import VideoCall from '../../../components/VideoCall';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 
 export default function SchedulesSection() {
   const [profile, setProfile] = useState({
@@ -9,7 +10,7 @@ export default function SchedulesSection() {
   });
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [updatingBookingId, setUpdatingBookingId] = useState(null);
   const [updateError, setUpdateError] = useState(null);
@@ -20,11 +21,11 @@ export default function SchedulesSection() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("Fetching educator data for date:", selectedDate);
+        console.log("Fetching educator data for all bookings");
         
         const [profileResponse, bookingsResponse] = await Promise.all([
           newRequest.get("/profiles/educator"),
-          newRequest.get(`/bookings/educator?date=${selectedDate}`)
+          newRequest.get("/bookings/educator")
         ]);
         
         console.log("Profile response:", profileResponse.data);
@@ -44,7 +45,18 @@ export default function SchedulesSection() {
       }
     };
     fetchData();
-  }, [selectedDate]);
+  }, []);
+
+  // Sort bookings by creation date (latest first)
+  useEffect(() => {
+    const sorted = bookings.sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return dateB - dateA;
+    });
+    
+    setFilteredBookings(sorted);
+  }, [bookings]);
 
   const handleStatusUpdate = async (bookingId, newStatus) => {
     setUpdatingBookingId(bookingId);
@@ -59,7 +71,7 @@ export default function SchedulesSection() {
       console.log("Status update response:", response.data);
       
       // Refresh bookings
-      const bookingsResponse = await newRequest.get(`/bookings/educator?date=${selectedDate}`);
+      const bookingsResponse = await newRequest.get("/bookings/educator");
       setBookings(bookingsResponse.data || []);
       
       console.log("Updated bookings:", bookingsResponse.data);
@@ -87,31 +99,32 @@ export default function SchedulesSection() {
     });
   };
 
-  const isTodayOrPast = (dateString) => {
-    const today = new Date();
+  const formatCreatedAt = (dateString) => {
     const date = new Date(dateString);
-    today.setHours(0,0,0,0);
-    date.setHours(0,0,0,0);
-    return date <= today;
+    const now = new Date();
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    }
   };
+
+
 
   if (loading) {
     return (
       <div className="ed-schedules">
-        <div className="schedule-header">
-          <h3>Session Bookings</h3>
-          <div className="date-selector">
-            <label>Select Date:</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-            />
-          </div>
-        </div>
         <div className="loading-container">
-          <div className="loading-spinner">Loading schedule data...</div>
+          <LoadingSpinner 
+            size="large" 
+            text="Loading all package requests..." 
+            variant="primary" 
+          />
         </div>
       </div>
     );
@@ -119,57 +132,67 @@ export default function SchedulesSection() {
 
   return (
     <div className="ed-schedules">
-      <div className="schedule-header">
-        <h3>Session Bookings</h3>
-        <div className="date-selector">
-          <label>Select Date:</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-          />
-        </div>
-      </div>
 
       <div className="bookings-section">
-        <h4>Bookings for {formatDate(selectedDate)}</h4>
-        {updateError && <div className="error-message">{updateError}</div>}
+        <h4>All Package Requests</h4>
         
-        {/* Debug information */}
-        <div className="debug-info" style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
-          <p>Total bookings: {bookings.length}</p>
-          <p>Selected date: {selectedDate}</p>
-          <p>Time slots available: {profile.timeSlots.length}</p>
+        {/* Booking Statistics */}
+        <div className="booking-stats">
+          <div className="stat-card">
+            <div className="stat-number">{filteredBookings.length}</div>
+            <div className="stat-label">Total Requests</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{filteredBookings.filter(b => b.status === 'pending').length}</div>
+            <div className="stat-label">Pending</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{filteredBookings.filter(b => b.status === 'confirmed').length}</div>
+            <div className="stat-label">Confirmed</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{filteredBookings.filter(b => b.status === 'completed').length}</div>
+            <div className="stat-label">Completed</div>
+          </div>
         </div>
         
-        {bookings.length === 0 ? (
-          <div className="no-bookings">
-            <p>No bookings for this date</p>
-            <p style={{ fontSize: '12px', color: '#666' }}>
-              This could mean: no students have booked sessions, or there might be an issue with the booking system.
-            </p>
-          </div>
+        {updateError && <div className="error-message">{updateError}</div>}
+        
+                 {filteredBookings.length === 0 ? (
+           <div className="no-bookings">
+             <p>No bookings found</p>
+             <p style={{ fontSize: '12px', color: '#666' }}>
+               No students have booked sessions yet, or there might be an issue with the booking system.
+             </p>
+           </div>
         ) : (
           <div className="bookings-list">
-            {bookings.map((booking) => (
+            {filteredBookings.map((booking, index) => (
               <div key={booking._id} className="booking-card">
-                <div className="booking-header">
-                  <div className="student-info">
-                    <img 
-                      src={booking.studentId?.img || '/img/noavatar.jpg'} 
-                      alt={booking.studentId?.username}
-                      className="student-avatar"
-                    />
-                    <div>
-                      <h5>{booking.studentId?.username}</h5>
-                      <p>{booking.packageId?.title}</p>
+                {index === 0 && (
+                  <div className="latest-indicator">
+                    <span>Latest Request</span>
+                  </div>
+                )}
+                                  <div className="booking-header">
+                    <div className="student-info">
+                      <img 
+                        src={booking.studentId?.img || '/img/noavatar.jpg'} 
+                        alt={booking.studentId?.username}
+                        className="student-avatar"
+                      />
+                      <div>
+                        <h5>{booking.studentId?.username}</h5>
+                        <p>{booking.packageId?.title}</p>
+                        <small className="created-at">
+                          Requested {formatCreatedAt(booking.createdAt)}
+                        </small>
+                      </div>
+                    </div>
+                    <div className={`status-badge ${booking.status}`}>
+                      {booking.status}
                     </div>
                   </div>
-                  <div className={`status-badge ${booking.status}`}>
-                    {booking.status}
-                  </div>
-                </div>
 
                 <div className="booking-details">
                   <div className="session-info">
@@ -215,15 +238,15 @@ export default function SchedulesSection() {
                       </button>
                     </>
                   )}
-                  {/* Start Session button for confirmed bookings at the scheduled date */}
-                  {booking.status === 'confirmed' && isTodayOrPast(selectedDate) && (
-                    <button
-                      className="start-session-btn"
-                      onClick={() => setVideoCallBooking(booking)}
-                    >
-                      Start Session
-                    </button>
-                  )}
+                                     {/* Start Session button for confirmed bookings */}
+                   {booking.status === 'confirmed' && (
+                     <button
+                       className="start-session-btn"
+                       onClick={() => setVideoCallBooking(booking)}
+                     >
+                       Start Session
+                     </button>
+                   )}
                   <button
                     onClick={() => setSelectedBooking(booking)}
                     className="view-btn"

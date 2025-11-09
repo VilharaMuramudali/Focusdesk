@@ -1,0 +1,382 @@
+.review-system-demo {
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+
+  .demo-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 1rem 0;
+      background: linear-gradient(135deg, #3b82f6, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    p {
+      font-size: 1.125rem;
+      color: #64748b;
+      margin: 0;
+    }
+  }
+
+  .demo-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .demo-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0 0 1.5rem 0;
+      text-align: center;
+    }
+
+    .rating-showcase {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+
+      .rating-item {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+
+        h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #374151;
+          margin: 0 0 1rem 0;
+        }
+      }
+    }
+
+    .package-card-demo {
+      display: flex;
+      justify-content: center;
+
+      .package-card {
+        max-width: 400px;
+        width: 100%;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+
+        .package-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+
+          .educator-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+
+          .package-info {
+            flex: 1;
+
+            h3 {
+              font-size: 1.125rem;
+              font-weight: 600;
+              color: #1e293b;
+              margin: 0 0 0.25rem 0;
+            }
+
+            .educator-name {
+              font-size: 0.875rem;
+              color: #64748b;
+              margin: 0 0 0.5rem 0;
+            }
+          }
+        }
+
+        .package-details {
+          .description {
+            font-size: 0.875rem;
+            color: #374151;
+            margin: 0 0 1rem 0;
+            line-height: 1.5;
+          }
+
+          .package-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+
+            span {
+              background: #e2e8f0;
+              color: #374151;
+              padding: 0.25rem 0.5rem;
+              border-radius: 6px;
+              font-size: 0.75rem;
+              font-weight: 500;
+            }
+          }
+
+          .package-price {
+            display: flex;
+            align-items: baseline;
+            gap: 0.25rem;
+
+            .price {
+              font-size: 1.5rem;
+              font-weight: 700;
+              color: #3b82f6;
+            }
+
+            .unit {
+              font-size: 0.875rem;
+              color: #64748b;
+            }
+          }
+        }
+      }
+    }
+
+    .reviews-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+
+      .review-item {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+
+        .review-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+
+          .student-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+
+          .review-meta {
+            flex: 1;
+
+            h4 {
+              font-size: 1rem;
+              font-weight: 600;
+              color: #1e293b;
+              margin: 0 0 0.25rem 0;
+            }
+
+            .review-date {
+              font-size: 0.75rem;
+              color: #64748b;
+            }
+          }
+        }
+
+        .review-content {
+          p {
+            font-size: 0.875rem;
+            color: #374151;
+            margin: 0 0 1rem 0;
+            line-height: 1.5;
+          }
+
+          .review-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+
+            .category-rating {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 0.5rem;
+              background: white;
+              border-radius: 6px;
+              border: 1px solid #e2e8f0;
+
+              .category-name {
+                font-size: 0.75rem;
+                color: #64748b;
+                font-weight: 500;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .review-submission-demo {
+      display: flex;
+      justify-content: center;
+
+      .session-card {
+        max-width: 400px;
+        width: 100%;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+
+        .session-info {
+          margin-bottom: 1.5rem;
+
+          h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 1rem 0;
+          }
+
+          p {
+            font-size: 0.875rem;
+            color: #374151;
+            margin: 0 0 0.5rem 0;
+
+            strong {
+              color: #1e293b;
+            }
+          }
+        }
+
+        .review-btn {
+          width: 100%;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          border: none;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          }
+        }
+      }
+    }
+
+    .loading-showcase {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+
+      .loading-item {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+
+        h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #374151;
+          margin: 0 0 1rem 0;
+        }
+      }
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 768px) {
+    padding: 1rem;
+
+    .demo-header {
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
+
+    .demo-section {
+      padding: 1.5rem;
+
+      .rating-showcase {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .loading-showcase {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+  }
+
+  // Dark mode support
+  @media (prefers-color-scheme: dark) {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+
+    .demo-header,
+    .demo-section {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e2e8f0;
+
+      h1, h2, h3 {
+        color: #f1f5f9;
+      }
+
+      p {
+        color: #cbd5e1;
+      }
+    }
+
+    .rating-item,
+    .package-card,
+    .review-item,
+    .session-card,
+    .loading-item {
+      background: #334155;
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+
+    .package-meta span {
+      background: #475569;
+      color: #e2e8f0;
+    }
+
+    .category-rating {
+      background: #475569 !important;
+      border-color: #64748b !important;
+    }
+  }
+}

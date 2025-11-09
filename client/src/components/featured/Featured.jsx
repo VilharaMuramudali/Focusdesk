@@ -8,7 +8,7 @@ function Featured() {
   const navigate = useNavigate();
 
   const handleSubmit = () => {
-    navigate(`/gigs?search=${input}`);
+    navigate(`/find-tutors?search=${input}`);
   };
 
   return (

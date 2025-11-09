@@ -1,6 +1,8 @@
 import Package from "../models/package.model.js";
 import User from "../models/user.model.js";
+import Review from "../models/review.model.js";
 import createError from "../utils/createError.js";
+import mongoose from "mongoose";
 
 // Get all packages for an educator
 export const getEducatorPackages = async (req, res, next) => {
@@ -15,10 +17,13 @@ export const getEducatorPackages = async (req, res, next) => {
     
     const packages = await Package.find({ educatorId: userId }).sort({ createdAt: -1 });
     
-    // Log packages to verify languages array
-    console.log("Sending packages to frontend:", packages);
+    // Calculate actual ratings from reviews
+    const packagesWithRatings = await calculatePackageRatings(packages);
     
-    res.status(200).json(packages);
+    // Log packages to verify languages array
+    console.log("Sending packages to frontend:", packagesWithRatings);
+    
+    res.status(200).json(packagesWithRatings);
   } catch (error) {
     console.error("Error fetching educator packages:", error);
     next(createError(500, "Failed to fetch packages"));
@@ -166,23 +171,153 @@ export const deletePackage = async (req, res, next) => {
 export const getPackageById = async (req, res, next) => {
   try {
     const packageId = req.params.id;
+    console.log('getPackageById: Fetching package with ID:', packageId);
     
-    const packageData = await Package.findById(packageId);
+    // Validate package ID format
+    if (!mongoose.Types.ObjectId.isValid(packageId)) {
+      console.log('getPackageById: Invalid package ID format:', packageId);
+      return next(createError(400, "Invalid package ID format"));
+    }
+    
+    console.log('getPackageById: Package ID is valid, searching database...');
+    
+    const packageData = await Package.findById(packageId)
+      .populate('educatorId', 'username img bio');
+    
+    console.log('getPackageById: Package data found:', packageData ? 'Yes' : 'No');
     
     if (!packageData) {
+      console.log('getPackageById: Package not found for ID:', packageId);
       return next(createError(404, "Package not found"));
     }
     
-    res.status(200).json(packageData);
+    console.log('getPackageById: Package found, calculating ratings...');
+    
+    // Calculate actual rating from reviews
+    const ratingData = await Review.getPackageAverageRating(packageId);
+    console.log(`getPackageById: Package ${packageId} rating data:`, ratingData);
+    
+    const packageWithRating = {
+      ...packageData.toObject(),
+      rating: ratingData.averageRating,
+      totalReviews: ratingData.totalReviews
+    };
+    
+    console.log('getPackageById: Sending package with rating:', {
+      _id: packageWithRating._id,
+      title: packageWithRating.title,
+      rating: packageWithRating.rating,
+      totalReviews: packageWithRating.totalReviews
+    });
+    
+    res.status(200).json(packageWithRating);
   } catch (error) {
-    console.error("Error fetching package:", error);
+    console.error("getPackageById: Error fetching package:", error);
+    console.error("getPackageById: Error stack:", error.stack);
     next(createError(500, "Failed to fetch package"));
   }
+};
+
+// Force refresh package ratings (for testing)
+export const refreshPackageRatings = async (req, res, next) => {
+  try {
+    const packageId = req.params.id;
+    
+    console.log('Refreshing ratings for package:', packageId);
+    
+    // Get all reviews for this package
+    const reviews = await Review.find({ packageId });
+    console.log(`Found ${reviews.length} reviews for package ${packageId}:`, reviews);
+    
+    // Calculate rating manually
+    const ratingData = await Review.getPackageAverageRating(packageId);
+    console.log(`Calculated rating for package ${packageId}:`, ratingData);
+    
+    // Also test the aggregation pipeline manually
+    const manualAggregation = await Review.aggregate([
+      { $match: { packageId: new mongoose.Types.ObjectId(packageId) } },
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: "$overallRating" },
+          totalReviews: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    console.log('Manual aggregation result:', manualAggregation);
+    
+    res.status(200).json({
+      success: true,
+      packageId,
+      reviews: reviews.length,
+      rating: ratingData.averageRating,
+      totalReviews: ratingData.totalReviews,
+      manualAggregation: manualAggregation[0] || null
+    });
+  } catch (error) {
+    console.error("Error refreshing package ratings:", error);
+    console.error("Error stack:", error.stack);
+    next(createError(500, "Failed to refresh package ratings"));
+  }
+};
+
+// Helper function to calculate ratings for packages
+const calculatePackageRatings = async (packages) => {
+  console.log(`calculatePackageRatings: Processing ${packages.length} packages`);
+  
+  const packagesWithRatings = await Promise.all(
+    packages.map(async (pkg) => {
+      try {
+        console.log(`calculatePackageRatings: Processing package ${pkg._id} - ${pkg.title}`);
+        const ratingData = await Review.getPackageAverageRating(pkg._id);
+        console.log(`Package ${pkg._id} rating data:`, ratingData);
+        
+        const result = {
+          ...pkg.toObject(),
+          rating: ratingData.averageRating,
+          totalReviews: ratingData.totalReviews
+        };
+        
+        console.log(`Package ${pkg._id} final result:`, {
+          _id: result._id,
+          title: result.title,
+          rating: result.rating,
+          totalReviews: result.totalReviews
+        });
+        
+        return result;
+      } catch (error) {
+        console.error(`Error calculating rating for package ${pkg._id}:`, error);
+        console.error(`Error stack:`, error.stack);
+        
+        const result = {
+          ...pkg.toObject(),
+          rating: 0,
+          totalReviews: 0
+        };
+        
+        console.log(`Package ${pkg._id} fallback result:`, {
+          _id: result._id,
+          title: result.title,
+          rating: result.rating,
+          totalReviews: result.totalReviews
+        });
+        
+        return result;
+      }
+    })
+  );
+  
+  console.log(`calculatePackageRatings: Completed processing ${packagesWithRatings.length} packages`);
+  return packagesWithRatings;
 };
 
 // Get all public packages (for students to browse)
 export const getPublicPackages = async (req, res, next) => {
   try {
+    console.log('getPublicPackages: Starting to fetch packages...');
+    
     const { keywords, minRate, maxRate } = req.query;
     const subject = req.query.subject;
     // Build query
@@ -205,14 +340,23 @@ export const getPublicPackages = async (req, res, next) => {
     if (subject) {
       query.title = { $regex: subject, $options: 'i' };
     }
+    
+    console.log('getPublicPackages: Query:', query);
       
     const packages = await Package.find(query)
       .populate('educatorId', 'username img')
       .sort({ createdAt: -1 });
     
-    res.status(200).json(packages);
+    console.log(`getPublicPackages: Found ${packages.length} packages`);
+    
+    // Calculate actual ratings from reviews
+    const packagesWithRatings = await calculatePackageRatings(packages);
+    
+    console.log('getPublicPackages: Packages with ratings calculated, sending response');
+    res.status(200).json(packagesWithRatings);
   } catch (error) {
     console.error("Error fetching public packages:", error);
+    console.error("Error stack:", error.stack);
     next(createError(500, "Failed to fetch packages"));
   }
 };
@@ -226,18 +370,22 @@ export const getRecommendedPackages = async (req, res, next) => {
     if (!studentId) {
       const packages = await Package.find({ isActive: true })
         .populate('educatorId', 'username img')
-        .sort({ rating: -1, totalOrders: -1 })
+        .sort({ createdAt: -1 })
         .limit(8);
       
-      const transformedPackages = packages.map(pkg => ({
+      // Calculate actual ratings from reviews
+      const packagesWithRatings = await calculatePackageRatings(packages);
+      
+      const transformedPackages = packagesWithRatings.map(pkg => ({
         _id: pkg._id,
         title: pkg.title,
-        description: pkg.desc,
+        description: pkg.description,
         tutor: {
           username: pkg.educatorId?.username || 'Unknown Tutor',
           img: pkg.educatorId?.img || '/img/noavatar.jpg'
         },
-        rating: pkg.rating || 4.5,
+        rating: pkg.rating || 0,
+        totalReviews: pkg.totalReviews || 0,
         languages: pkg.languages || ['English'],
         image: pkg.thumbnail || '/img/course-default.jpg',
         price: pkg.rate,
@@ -245,6 +393,96 @@ export const getRecommendedPackages = async (req, res, next) => {
       }));
       
       return res.status(200).json({ packages: transformedPackages });
+    }
+
+    // Try AI-powered recommendations first
+    try {
+      const aiRecommendationService = (await import("../services/ai/aiRecommendationService.js")).default;
+      const aiResult = await aiRecommendationService.getRecommendations(
+        studentId,
+        {
+          query: "",
+          algorithm: "hybrid",
+          limit: 8
+        }
+      );
+
+      if (aiResult && aiResult.recommendations && aiResult.recommendations.length > 0) {
+        // Get full package details for AI recommendations
+        const aiPackageIds = aiResult.recommendations.map(pkg => {
+          // Handle both _id and packageId formats
+          const id = pkg._id || pkg.packageId || pkg.package_id;
+          if (!id) return null;
+          
+          // Convert to ObjectId if it's a valid MongoDB ObjectId string
+          const idStr = id.toString();
+          if (mongoose.Types.ObjectId.isValid(idStr) && idStr.length === 24) {
+            return new mongoose.Types.ObjectId(idStr);
+          }
+          
+          // Try to convert anyway (for compatibility)
+          try {
+            return new mongoose.Types.ObjectId(idStr);
+          } catch (e) {
+            return null;
+          }
+        }).filter(id => id !== null);
+        
+        if (aiPackageIds.length === 0) {
+          throw new Error('No valid package IDs from ML recommendations');
+        }
+        
+        // Fetch complete package details from database
+        const aiPackages = await Package.find({ _id: { $in: aiPackageIds } })
+          .populate('educatorId', 'username img subjects')
+          .lean();
+
+        if (aiPackages && aiPackages.length > 0) {
+          // Calculate actual ratings from reviews
+          const aiPackagesWithRatings = await calculatePackageRatings(aiPackages);
+          
+          // Transform AI recommendations to match frontend format
+          const transformedPackages = aiPackagesWithRatings.map(pkg => ({
+            _id: pkg._id,
+            title: pkg.title,
+            description: pkg.description,
+            tutor: {
+              username: pkg.educatorId?.username || 'Unknown Tutor',
+              img: pkg.educatorId?.img || '/img/noavatar.jpg',
+              subjects: pkg.educatorId?.subjects || []
+            },
+            rating: pkg.rating || 0,
+            totalReviews: pkg.totalReviews || 0,
+            languages: pkg.languages || ['English'],
+            image: pkg.thumbnail || pkg.image || '/img/course-default.jpg',
+            price: pkg.rate || pkg.price,
+            subjects: pkg.subjects || [],
+            level: pkg.level || 'beginner',
+            totalOrders: pkg.totalOrders || 0,
+            isPersonalized: true,
+            aiScore: aiResult.recommendations.find(r => {
+              const recId = (r._id || r.packageId || r.package_id || '').toString();
+              return recId === pkg._id.toString();
+            })?.score || aiResult.recommendations.find(r => {
+              const recId = (r._id || r.packageId || r.package_id || '').toString();
+              return recId === pkg._id.toString();
+            })?.aiScore || 0,
+            algorithm: aiResult.algorithm
+          }));
+
+          console.log(`AI recommendations found: ${transformedPackages.length} packages`);
+          
+          return res.status(200).json({ 
+            packages: transformedPackages,
+            isPersonalized: true,
+            source: 'ai',
+            algorithm: aiResult.algorithm,
+            message: `AI-powered recommendations using ${aiResult.algorithm} algorithm`
+          });
+        }
+      }
+    } catch (aiError) {
+      console.log('AI recommendation service failed, falling back to traditional recommendations:', aiError.message);
     }
     
     // Get student preferences and behavior for personalized recommendations
@@ -295,8 +533,8 @@ export const getRecommendedPackages = async (req, res, next) => {
     let personalizedPackages = [];
     if (hasPersonalizedFilters) {
       personalizedPackages = await Package.find(personalizedQuery)
-        .populate('educatorId', 'username img subjects bio rating totalSessions')
-        .sort({ rating: -1, totalOrders: -1 })
+        .populate('educatorId', 'username img subjects bio totalSessions')
+        .sort({ createdAt: -1 })
         .limit(30); // Get more to filter by strict scoring
       
       console.log(`Found ${personalizedPackages.length} potential personalized packages`);
@@ -337,18 +575,21 @@ export const getRecommendedPackages = async (req, res, next) => {
       
       // If we have high-relevance packages, return them
       if (highRelevancePackages.length > 0) {
+        // Calculate actual ratings from reviews
+        const packagesWithRatings = await calculatePackageRatings(highRelevancePackages);
+        
         // Transform to frontend format
-        const transformedPackages = highRelevancePackages.slice(0, 8).map(pkg => ({
+        const transformedPackages = packagesWithRatings.slice(0, 8).map(pkg => ({
           _id: pkg._id,
           title: pkg.title,
-          description: pkg.desc,
+          description: pkg.description,
           tutor: {
             username: pkg.educatorId?.username || 'Unknown Tutor',
             img: pkg.educatorId?.img || '/img/noavatar.jpg',
-            subjects: pkg.educatorId?.subjects || [],
-            rating: pkg.educatorId?.rating || 0
+            subjects: pkg.educatorId?.subjects || []
           },
-          rating: pkg.rating || 4.5,
+          rating: pkg.rating || 0,
+          totalReviews: pkg.totalReviews || 0,
           languages: pkg.languages || ['English'],
           image: pkg.thumbnail || '/img/course-default.jpg',
           price: pkg.rate,

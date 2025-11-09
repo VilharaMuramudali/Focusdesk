@@ -6,28 +6,93 @@ import User from '../../models/user.model.js';
 import Package from '../../models/package.model.js';
 import UserInteraction from '../../models/userInteraction.model.js';
 
+// Constants for service health management
+const HEALTH_CHECK_INTERVAL = 30000; // 30 seconds
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 1000; // 1 second
+const CONNECTION_TIMEOUT = 5000; // 5 seconds
+
 class AIRecommendationService {
   constructor() {
-    this.aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:5000';
+    this.aiServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
     this.isConnected = false;
-    this.checkConnection();
+    this.lastConnectionAttempt = 0;
+    this.retryCount = 0;
+    this.healthCheckInterval = null;
+    
+    // Initialize health check
+    this.startHealthCheck();
+  }
+
+  async startHealthCheck() {
+    // Clear any existing interval
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+
+    // Start periodic health checks
+    this.healthCheckInterval = setInterval(async () => {
+      await this.checkConnection();
+    }, HEALTH_CHECK_INTERVAL);
+
+    // Initial check
+    await this.checkConnection();
   }
 
   async checkConnection() {
     try {
-      const response = await axios.get(`${this.aiServiceUrl}/health`);
-      this.isConnected = response.data.status === 'healthy';
-      console.log('AI Service connection status:', this.isConnected);
+      const now = Date.now();
+      // Prevent too frequent checks
+      if (now - this.lastConnectionAttempt < RETRY_DELAY) {
+        return this.isConnected;
+      }
+      
+      this.lastConnectionAttempt = now;
+      
+      const response = await axios.get(`${this.aiServiceUrl}/health`, {
+        timeout: CONNECTION_TIMEOUT
+      });
+      
+      if (response.status === 200 && response.data.status === 'healthy') {
+        this.isConnected = true;
+        this.retryCount = 0;
+        console.log('✅ ML Service connection healthy');
+        return true;
+      }
+      
+      throw new Error('Unhealthy response from ML service');
     } catch (error) {
       this.isConnected = false;
-      console.warn('AI Service not available:', error.message);
+      this.retryCount++;
+      
+      console.warn(`⚠️ ML Service connection failed (attempt ${this.retryCount}/${MAX_RETRY_ATTEMPTS}):`, error.message);
+      
+      if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
+        console.error('❌ ML Service connection failed after maximum retry attempts');
+      }
+      
+      return false;
     }
   }
 
   async getRecommendations(userId, options = {}) {
     try {
+      // Validate connection with retry logic
+      let retryAttempt = 0;
+      while (!this.isConnected && retryAttempt < MAX_RETRY_ATTEMPTS) {
+        console.log(`Attempting to connect to ML service (attempt ${retryAttempt + 1}/${MAX_RETRY_ATTEMPTS})`);
+        await this.checkConnection();
+        
+        if (!this.isConnected) {
+          retryAttempt++;
+          if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          }
+        }
+      }
+      
       if (!this.isConnected) {
-        console.warn('AI Service not available, using fallback recommendations');
+        console.warn('AI/ML Service not available after retries, using fallback recommendations');
         return await this.getFallbackRecommendations(userId, options);
       }
 
@@ -39,19 +104,52 @@ class AIRecommendationService {
         includePackages = true
       } = options;
 
-      // Get recommendations from AI service
-      const response = await axios.post(`${this.aiServiceUrl}/recommendations`, {
-        user_id: userId,
-        query: query,
-        algorithm: algorithm,
-        limit: limit
-      });
+      // Get recommendations from ML API service with timeout and retry logic
+      let response;
+      for (let attempt = 0; attempt < MAX_RETRY_ATTEMPTS; attempt++) {
+        try {
+          response = await axios.post(`${this.aiServiceUrl}/recommendations`, {
+            user_id: userId.toString(),
+            query: query,
+            algorithm: algorithm,
+            limit: limit,
+            timestamp: Date.now() // Add timestamp for cache busting if needed
+          }, {
+            timeout: 30000, // 30 second timeout for ML processing
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          
+          // If successful, break the retry loop
+          if (response.data && response.data.recommendations) {
+            break;
+          }
+        } catch (error) {
+          console.warn(`ML recommendation request failed (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS}):`, error.message);
+          
+          if (attempt === MAX_RETRY_ATTEMPTS - 1) {
+            // Last attempt failed, use fallback
+            console.warn('ML recommendations failed after all retries, using fallback');
+            return await this.getFallbackRecommendations(userId, options);
+          }
+          
+          // Wait before next retry
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        }
+      }
 
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to get AI recommendations');
       }
 
-      const aiRecommendations = response.data.recommendations;
+      const aiRecommendations = response.data.recommendations || [];
+
+      if (aiRecommendations.length === 0) {
+        console.log('⚠️ ML service returned no recommendations, using fallback');
+        return await this.getFallbackRecommendations(userId, options);
+      }
 
       // Enhance recommendations with additional data
       const enhancedRecommendations = await this.enhanceRecommendations(aiRecommendations, userId);
@@ -65,12 +163,15 @@ class AIRecommendationService {
         algorithm: algorithm,
         query: query,
         totalCount: enhancedRecommendations.length,
-        source: 'ai_service',
+        source: 'ml_service',
         timestamp: new Date()
       };
 
     } catch (error) {
-      console.error('AI recommendation error:', error);
+      console.error('AI/ML recommendation error:', error.message);
+      
+      // Mark as disconnected and fallback
+      this.isConnected = false;
       
       // Fallback to basic recommendations
       return await this.getFallbackRecommendations(userId, options);
@@ -82,43 +183,64 @@ class AIRecommendationService {
       const enhanced = [];
 
       for (const rec of aiRecommendations) {
-        // Get educator details
-        const educator = await User.findById(rec.educator_id)
-          .select('username email img subjects bio rating totalSessions teachingProfile');
+        // Get package ID from different possible formats
+        const packageId = rec._id || rec.packageId || rec.package_id;
+        
+        if (!packageId) {
+          console.warn('⚠️ Recommendation missing package ID:', rec);
+          continue;
+        }
 
         // Get package details
-        const packageData = await Package.findById(rec.package_id)
-          .select('title desc price subjects level duration rating totalOrders');
+        const packageData = await Package.findById(packageId)
+          .populate('educatorId', 'username email img subjects bio rating totalSessions teachingProfile')
+          .lean();
 
-        if (educator && packageData) {
-          enhanced.push({
-            ...rec,
-            educator: {
-              id: educator._id,
-              username: educator.username,
-              email: educator.email,
-              img: educator.img,
-              subjects: educator.subjects,
-              bio: educator.bio,
-              rating: educator.rating,
-              totalSessions: educator.totalSessions,
-              teachingProfile: educator.teachingProfile
-            },
-            package: {
-              id: packageData._id,
-              title: packageData.title,
-              desc: packageData.desc,
-              price: packageData.price,
-              subjects: packageData.subjects,
-              level: packageData.level,
-              duration: packageData.duration,
-              rating: packageData.rating,
-              totalOrders: packageData.totalOrders
-            },
-            // Add personalized explanation
-            explanation: this.generateExplanation(rec, educator, packageData)
-          });
+        if (!packageData) {
+          console.warn(`⚠️ Package not found for ID: ${packageId}`);
+          continue;
         }
+
+        // Get educator from populated field or find separately
+        let educator = packageData.educatorId;
+        
+        if (!educator && packageData.educatorId) {
+          educator = await User.findById(packageData.educatorId)
+            .select('username email img subjects bio rating totalSessions teachingProfile')
+            .lean();
+        }
+
+        // Format recommendation for frontend
+        const enhancedRec = {
+          _id: packageId.toString(),
+          packageId: packageId.toString(),
+          title: rec.title || packageData.title,
+          description: rec.description || packageData.description || packageData.desc,
+          rate: rec.rate || packageData.rate,
+          price: rec.price || rec.rate || packageData.rate,
+          score: rec.score || rec.aiScore || rec.similarity_score || rec.predicted_score || 0,
+          aiScore: rec.aiScore || rec.score || rec.similarity_score || rec.predicted_score || 0,
+          method: rec.method || 'hybrid',
+          algorithm: rec.method || 'hybrid',
+          isPersonalized: true,
+          tutor: educator ? {
+            username: educator.username,
+            img: educator.img || '/img/noavatar.jpg',
+            subjects: educator.subjects || []
+          } : {
+            username: 'Unknown Tutor',
+            img: '/img/noavatar.jpg',
+            subjects: []
+          },
+          rating: packageData.rating || 0,
+          subjects: packageData.subjects || [],
+          languages: packageData.languages || ['English'],
+          image: packageData.thumbnail || '/img/course-default.jpg',
+          level: packageData.level || 'beginner',
+          totalOrders: packageData.totalOrders || 0
+        };
+
+        enhanced.push(enhancedRec);
       }
 
       return enhanced;

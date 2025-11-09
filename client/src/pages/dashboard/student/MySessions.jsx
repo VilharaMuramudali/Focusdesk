@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaCalendarAlt, FaClock, FaUser, FaEye, FaStar, FaVideo, FaChalkboardTeacher, FaComments, FaCalendar, FaPlus, FaPaperPlane } from "react-icons/fa";
+import { FaCalendarAlt, FaClock, FaUser, FaEye, FaStar, FaVideo, FaChalkboardTeacher, FaComments, FaCalendar, FaPlus, FaPaperPlane, FaComment, FaFileAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import newRequest from '../../../utils/newRequest';
 import { useChat } from '../../../context/ChatContext.jsx';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { safeSetInterval, debounce } from '../../../utils/memoryUtils';
 import SharedHeaderBanner from "./SharedHeaderBanner";
+import ReviewModal from "../../../components/ReviewModal";
+import LoadingSpinner from "../../../components/LoadingSpinner";
 import './MySessions.scss';
 import VideoCall from '../../../components/VideoCall';
 import "./home.scss";
@@ -21,6 +23,8 @@ export default function MySessions() {
   const [selectedEducator, setSelectedEducator] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedSessionForReview, setSelectedSessionForReview] = useState(null);
   
   const navigate = useNavigate();
   const { createNewConversation, sendTextMessage } = useChat();
@@ -270,6 +274,49 @@ export default function MySessions() {
     setIsSending(false);
   };
 
+  const handleReviewSession = (session) => {
+    setSelectedSessionForReview(session);
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async (reviewData) => {
+    try {
+      // Validate required fields
+      if (!reviewData.educatorId || !reviewData.packageId || !reviewData.sessionId) {
+        throw new Error('Missing required review data');
+      }
+
+      console.log('Submitting review data:', reviewData);
+      const response = await newRequest.post('/reviews/submit', reviewData);
+      console.log('Review submission response:', response.data);
+      showSuccessNotification('Review submitted successfully!');
+      
+      // Refresh sessions to update review status
+      const sessionsResponse = await newRequest.get('/bookings/student');
+      setSessions(sessionsResponse.data);
+      
+      // Notify app to refresh package ratings wherever displayed
+      try {
+        window.dispatchEvent(new CustomEvent('package-review-submitted', { detail: { packageId: reviewData.packageId } }));
+      } catch (e) {
+        console.warn('Could not dispatch package-review-submitted event:', e);
+      }
+      
+      // Force refresh package ratings (for testing)
+      try {
+        const refreshResponse = await newRequest.get(`/packages/${reviewData.packageId}/refresh-ratings`);
+        console.log('Package ratings refreshed:', refreshResponse.data);
+      } catch (refreshError) {
+        console.log('Could not refresh package ratings:', refreshError);
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      console.error('Error response:', error.response?.data);
+      showErrorNotification(error.response?.data?.message || 'Failed to submit review');
+      throw error;
+    }
+  };
+
   if (loading) {
     return <div className="loading-container">Loading your sessions...</div>;
   }
@@ -434,7 +481,10 @@ export default function MySessions() {
                             <div className="divider"></div>
                             <div className="instructor-rating">
                               <FaStar />
-                              <span>4.8 (127 reviews)</span>
+                              <span>
+                                {booking.packageId?.rating > 0 ? booking.packageId.rating.toFixed(1) : 'No ratings'}
+                                {booking.packageId?.totalReviews > 0 && ` (${booking.packageId.totalReviews} reviews)`}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -520,26 +570,39 @@ export default function MySessions() {
                           <div className="divider"></div>
                           <div className="instructor-rating">
                             <FaStar />
-                            <span>4.8 (127 reviews)</span>
+                            <span>
+                              {booking.packageId?.rating > 0 ? booking.packageId.rating.toFixed(1) : 'No ratings'}
+                              {booking.packageId?.totalReviews > 0 && ` (${booking.packageId.totalReviews} reviews)`}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
                     
                     <div className="session-actions">
-                      
-                      <button className="chat-btn" onClick={() => openChat(booking)}>
-                        <FaComments />
-                      </button>
-                      <div className="message-icon" onClick={() => openChat(booking)}>
-                        <FaComments />
-                      </div>
                       <button className="view-notes-btn">
-                        View session Notes & Materials
+                        <FaFileAlt />
+                        Notes
                       </button>
                       <button className="book-again-btn">
                         Book Again
                       </button>
+                      {booking.sessions.map((session, index) => (
+                        <button 
+                          key={index}
+                          className="review-btn" 
+                          onClick={() => handleReviewSession({
+                            ...session,
+                            _id: `${booking._id}_session_${index}`, // Create unique session ID
+                            educator: booking.educatorId,
+                            package: booking.packageId,
+                            bookingId: booking._id,
+                            sessionIndex: index
+                          })}
+                        >
+                          Rate Session
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -656,6 +719,21 @@ export default function MySessions() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Review Modal */}
+        {showReviewModal && selectedSessionForReview && (
+          <ReviewModal
+            isOpen={showReviewModal}
+            onClose={() => {
+              setShowReviewModal(false);
+              setSelectedSessionForReview(null);
+            }}
+            educator={selectedSessionForReview.educator}
+            packageData={selectedSessionForReview.package}
+            sessionData={selectedSessionForReview}
+            onSubmitReview={handleSubmitReview}
+          />
         )}
       </div>
     </div>

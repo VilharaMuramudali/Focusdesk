@@ -4,8 +4,8 @@ import newRequest from '../../../utils/newRequest';
 import getCurrentUser from '../../../utils/getCurrentUser';
 import HeaderBanner from './HomeComponents/HeaderBanner';
 import InterestTags from './HomeComponents/InterestTags';
-import LearningProgress from './HomeComponents/LearningProgress';
 import RecommendedCourses from './HomeComponents/RecommendedCourses';
+import RecommendedPackages from './HomeComponents/RecommendedPackages';
 import './home.scss';
 
 export default function HomeOverview({ onPreferencesUpdate, refreshKey, onEditPreferences }) {
@@ -37,6 +37,13 @@ export default function HomeOverview({ onPreferencesUpdate, refreshKey, onEditPr
     // Fetch personalized recommendations
     fetchPersonalizedRecommendations();
   }, []);
+
+  // Refresh recommendations when refreshKey changes (e.g., after updating preferences)
+  useEffect(() => {
+    if (refreshKey) {
+      fetchPersonalizedRecommendations();
+    }
+  }, [refreshKey]);
 
   // Track user behavior for better personalization
   const trackUserBehavior = async () => {
@@ -229,7 +236,7 @@ export default function HomeOverview({ onPreferencesUpdate, refreshKey, onEditPr
           {/* Left Column */}
           <div className="left-column">
             <InterestTags ref={interestTagsRef} topSubjects={topSubjects} refreshKey={refreshKey} onEditPreferences={onEditPreferences} />
-            <LearningProgress 
+            <RecommendedPackages 
               getImageUrl={getImageUrl}
               handleImageLoad={handleImageLoad}
               handleImageError={handleImageError}

@@ -1,10 +1,20 @@
 .messages-page {
+  display: flex;
   height: 100vh;
-  background: #fff;
+  background: #f5f7fa;
 
-  .messages-container {
+  .messages-content-wrapper {
+    flex: 1;
     display: flex;
-    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    margin-left: 240px; // Account for sidebar width (student-sidebar is 240px)
+
+    .messages-container {
+      display: flex;
+      height: 100%;
+      flex: 1;
+    }
   }
 
   .modal-overlay {
@@ -203,6 +213,10 @@
 // Responsive design
 @media (max-width: 768px) {
   .messages-page {
+    .messages-content-wrapper {
+      margin-left: 0; // No margin on mobile, sidebar should be handled by the sidebar component itself
+    }
+
     .messages-container {
       flex-direction: column;
     }

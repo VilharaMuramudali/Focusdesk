@@ -11,13 +11,27 @@
     border-bottom: 1px solid #e1e5e9;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
 
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
+    .header-title-section {
+      flex: 1;
+      
+      h3 {
+        margin: 0 0 4px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .unread-count-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #f0f0f0;
+        color: #666;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 500;
+      }
     }
 
     .new-chat-btn {
@@ -135,7 +149,18 @@
 
       &.active {
         background: #e3f2fd;
-        border-left: 3px solid #3b7eff;
+        border-left: 4px solid #3b7eff;
+        position: relative;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: #3b7eff;
+        }
       }
 
       .conversation-avatar {
@@ -258,7 +283,6 @@
     }
   }
 }
-
 // Responsive design
 @media (max-width: 768px) {
   .chat-sidebar {
@@ -276,3 +300,4 @@
     }
   }
 }
+

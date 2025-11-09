@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FaUser,FaEnvelope,FaLock,FaGraduationCap,FaGlobe,FaChalkboardTeacher,FaTimes,} from "react-icons/fa";
+  FaUser,FaEnvelope,FaLock,FaChalkboardTeacher,FaTimes,} from "react-icons/fa";
 import newRequest from "../../utils/newRequest";
 import "./Register.scss";
 
@@ -13,11 +13,9 @@ function Register({ inPanel = false, onClose, onRegisterSuccess }) {
     email: "",
     password: "",
     confirmPassword: "",
-    country: "",
     isEducator: false,
     bio: "",
     subjects: [],
-    educationLevel: "",
   });
 
   const navigate = useNavigate();
@@ -33,9 +31,7 @@ function Register({ inPanel = false, onClose, onRegisterSuccess }) {
     if (
       !user.username ||
       !user.email ||
-      !user.password ||
-      !user.country ||
-      !user.educationLevel
+      !user.password
     ) {
       setError("Please fill in all required fields");
       return false;
@@ -68,11 +64,9 @@ function Register({ inPanel = false, onClose, onRegisterSuccess }) {
         username: user.username,
         email: user.email,
         password: user.password,
-        country: user.country,
         isEducator: user.isEducator,
         bio: user.bio || "",
         subjects: user.subjects,
-        educationLevel: user.educationLevel,
       };
 
       await newRequest.post("/auth/register", userData);
@@ -174,40 +168,7 @@ function Register({ inPanel = false, onClose, onRegisterSuccess }) {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="country">
-                Country <span className="required">*</span>
-              </label>
-              <input
-                id="country"
-                name="country"
-                type="text"
-                placeholder="Select your country"
-                onChange={handleChange}
-                required
-              />
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="educationLevel">
-                Educational level <span className="required">*</span>
-              </label>
-              <select
-                id="educationLevel"
-                name="educationLevel"
-                onChange={handleChange}
-                required
-              >
-                <option value="" disabled selected>
-                  Your Educational level
-                </option>
-                <option value="high_school">High School</option>
-                <option value="bachelors">Bachelor`s Degree</option>
-                <option value="masters">Master`s Degree</option>
-                <option value="phd">PhD</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
           </div>
 
           {/* Profile picture upload section removed */}

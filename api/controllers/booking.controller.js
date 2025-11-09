@@ -226,3 +226,153 @@ export const getBookingById = async (req, res, next) => {
     next(createError(500, "Failed to fetch booking"));
   }
 }; 
+
+// Get educator transactions and earnings
+export const getEducatorTransactions = async (req, res, next) => {
+  try {
+    const educatorId = req.userId;
+    
+    // Get all bookings for this educator
+    const bookings = await Booking.find({ educatorId })
+      .populate('studentId', 'username email img')
+      .populate('packageId', 'title description rate subjects')
+      .sort({ createdAt: -1 });
+    
+    // Calculate earnings
+    const totalEarnings = bookings
+      .filter(booking => booking.paymentStatus === 'paid')
+      .reduce((sum, booking) => sum + booking.totalAmount, 0);
+    
+    const pendingEarnings = bookings
+      .filter(booking => booking.paymentStatus === 'pending')
+      .reduce((sum, booking) => sum + booking.totalAmount, 0);
+    
+    // Group transactions by month
+    const monthlyTransactions = {};
+    bookings.forEach(booking => {
+      const month = new Date(booking.createdAt).toISOString().slice(0, 7); // YYYY-MM
+      if (!monthlyTransactions[month]) {
+        monthlyTransactions[month] = {
+          month,
+          total: 0,
+          count: 0,
+          transactions: []
+        };
+      }
+      monthlyTransactions[month].total += booking.totalAmount;
+      monthlyTransactions[month].count += 1;
+      monthlyTransactions[month].transactions.push(booking);
+    });
+    
+    // Convert to array and sort by month
+    const monthlyData = Object.values(monthlyTransactions)
+      .sort((a, b) => b.month.localeCompare(a.month));
+    
+    // Get recent transactions (last 10)
+    const recentTransactions = bookings.slice(0, 10);
+    
+    // Get transaction statistics
+    const stats = {
+      totalBookings: bookings.length,
+      completedBookings: bookings.filter(b => b.status === 'completed').length,
+      pendingBookings: bookings.filter(b => b.status === 'pending').length,
+      cancelledBookings: bookings.filter(b => b.status === 'cancelled').length,
+      totalEarnings,
+      pendingEarnings,
+      averageBookingValue: bookings.length > 0 ? totalEarnings / bookings.length : 0
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        stats,
+        recentTransactions,
+        monthlyData,
+        totalBookings: bookings.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error getting educator transactions:', error);
+    next(createError(500, "Failed to get transactions"));
+  }
+}; 
+
+export const getStudentTransactions = async (req, res, next) => {
+  try {
+    const studentId = req.userId; // Get current user ID from JWT
+
+    // Find all bookings for this student
+    const bookings = await Booking.find({ studentId })
+      .populate('educatorId', 'username email img subjects rating')
+      .populate('packageId', 'title description rate subjects level sessions')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!bookings || bookings.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          stats: {
+            totalPurchases: 0,
+            completedPurchases: 0,
+            pendingPurchases: 0,
+            cancelledPurchases: 0,
+            totalSpent: 0,
+            pendingPayments: 0,
+            averagePurchaseValue: 0
+          },
+          recentTransactions: []
+        }
+      });
+    }
+
+    // Calculate statistics
+    const totalPurchases = bookings.length;
+    const completedPurchases = bookings.filter(b => b.status === 'completed').length;
+    const pendingPurchases = bookings.filter(b => b.status === 'pending').length;
+    const cancelledPurchases = bookings.filter(b => b.status === 'cancelled').length;
+    
+    const totalSpent = bookings
+      .filter(b => b.paymentStatus === 'paid')
+      .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    
+    const pendingPayments = bookings
+      .filter(b => b.paymentStatus === 'pending')
+      .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    
+    const averagePurchaseValue = totalPurchases > 0 ? totalSpent / totalPurchases : 0;
+
+    // Transform bookings to transaction format
+    const recentTransactions = bookings.map(booking => ({
+      _id: booking._id,
+      totalAmount: booking.totalAmount || 0,
+      status: booking.status || 'pending',
+      paymentStatus: booking.paymentStatus || 'pending',
+      createdAt: booking.createdAt,
+      educatorId: booking.educatorId,
+      packageId: booking.packageId,
+      sessions: booking.sessions || []
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          totalPurchases,
+          completedPurchases,
+          pendingPurchases,
+          cancelledPurchases,
+          totalSpent,
+          pendingPayments,
+          averagePurchaseValue
+        },
+        recentTransactions
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching student transactions:', error);
+    next(createError(500, "Failed to fetch student transactions"));
+  }
+}; 

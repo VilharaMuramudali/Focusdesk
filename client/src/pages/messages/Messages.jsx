@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useChat } from '../../context/ChatContext.jsx';
 import ChatSidebar from '../../components/chat/ChatSidebar';
 import ChatWindow from '../../components/chat/ChatWindow';
+import StudentSidebar from '../dashboard/student/StudentSidebar';
+import EducatorSidebar from '../dashboard/educator/EducatorSidebar';
+import newRequest from '../../utils/newRequest';
 import './Messages.scss';
 
 const Messages = () => {
@@ -9,6 +12,20 @@ const Messages = () => {
   const [activeConversation, setActiveConversation] = useState(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  
+  const handleLogout = async () => {
+    try {
+      await newRequest.post('/auth/logout');
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error logging out:', error);
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
+    }
+  };
 
   const handleConversationSelect = (conversation) => {
     setActiveConversation(conversation);
@@ -45,17 +62,26 @@ const Messages = () => {
 
   return (
     <div className="messages-page">
-      <div className="messages-container">
-        <ChatSidebar
-          onConversationSelect={handleConversationSelect}
-          onCreateNewChat={handleCreateNewChat}
-        />
-        <ChatWindow
-          conversation={activeConversation}
-          onBack={handleBack}
-          onCall={handleCall}
-          onVideoCall={handleVideoCall}
-        />
+      {/* Side Navigation Bar */}
+      {currentUser?.isEducator ? (
+        <EducatorSidebar tab="messages" setTab={() => {}} />
+      ) : (
+        <StudentSidebar onLogout={handleLogout} username={currentUser?.username} />
+      )}
+      
+      <div className="messages-content-wrapper">
+        <div className="messages-container">
+          <ChatSidebar
+            onConversationSelect={handleConversationSelect}
+            onCreateNewChat={handleCreateNewChat}
+          />
+          <ChatWindow
+            conversation={activeConversation}
+            onBack={handleBack}
+            onCall={handleCall}
+            onVideoCall={handleVideoCall}
+          />
+        </div>
       </div>
 
       {/* New Chat Modal */}

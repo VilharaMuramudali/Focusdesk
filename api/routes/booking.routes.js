@@ -5,7 +5,9 @@ import {
   getStudentBookings,
   getStudentSessions,
   updateBookingStatus,
-  getBookingById
+  getBookingById,
+  getEducatorTransactions,
+  getStudentTransactions
 } from "../controllers/booking.controller.js";
 import { verifyToken, educator } from "../middleware/jwt.js";
 
@@ -56,5 +58,11 @@ router.get("/:id", verifyToken, getBookingById);
 
 // Update booking status (for educators)
 router.put("/:id/status", verifyToken, educator, updateBookingStatus);
+
+// Get educator transactions and earnings
+router.get("/educator/transactions", verifyToken, educator, getEducatorTransactions);
+
+// Get student transactions and purchase history
+router.get("/student/transactions", verifyToken, getStudentTransactions);
 
 export default router; 

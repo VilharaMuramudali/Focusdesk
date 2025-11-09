@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FaUser, FaPlus, FaTimes, FaSearch } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
+import { SkeletonProfile } from "../../../components/skeleton/Skeleton";
 import "./ProfileSection.scss";
 
 // Timezone data with city, country and GMT offset
@@ -199,7 +200,11 @@ export default function ProfileSection() {
   };
 
   if (loading) {
-    return <div className="profile-container"><div className="profile-loading">Loading profile...</div></div>;
+    return (
+      <div className="profile-container">
+        <SkeletonProfile />
+      </div>
+    );
   }
 
   return (

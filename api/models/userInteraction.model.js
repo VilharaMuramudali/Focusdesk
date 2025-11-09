@@ -25,16 +25,21 @@ const userInteractionSchema = new Schema({
   
   context: {
     searchQuery: String,
+    searchKeywords: [String], // Extracted keywords from search
     filters: Schema.Types.Mixed,
     deviceType: { type: String, enum: ['desktop', 'mobile', 'tablet'] },
     location: String,
-    sessionDuration: Number
+    sessionDuration: Number, // Total time spent viewing the package/page in seconds
+    viewStartTime: Date, // When user started viewing
+    viewEndTime: Date // When user stopped viewing
   },
   
   metadata: {
     isRecommendation: { type: Boolean, default: false },
     recommendationRank: Number,
-    algorithmUsed: String
+    algorithmUsed: String,
+    timeSpent: Number, // Time spent in seconds (for quick access)
+    engagementLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' }
   }
 }, {
   timestamps: true

@@ -389,9 +389,8 @@
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 0 2rem;
 }
 
 /* Loading Spinner */
@@ -631,11 +630,11 @@
 
 /* Interest Tags Section */
 .interest-tags-section {
+  max-width: 1200px;
   background: white;
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 45px rgba(0, 0, 0, 0.1);
-  width: 762px;
   height: 88px;
   position: relative;
 }

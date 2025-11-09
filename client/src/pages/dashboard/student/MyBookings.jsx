@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaClock, FaUser, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaCheck, FaTimes, FaEye, FaComment } from 'react-icons/fa';
 import newRequest from '../../../utils/newRequest';
+import ReviewModal from '../../../components/ReviewModal';
+import { useNotifications } from '../../../hooks/useNotifications';
 import './MyBookings.scss';
 
 function MyBookings() {
@@ -8,6 +10,10 @@ function MyBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedSessionForReview, setSelectedSessionForReview] = useState(null);
+  
+  const { showSuccessNotification, showErrorNotification } = useNotifications();
 
   useEffect(() => {
     fetchBookings();
@@ -41,6 +47,77 @@ function MyBookings() {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const isSessionCompleted = (session) => {
+    const now = new Date();
+    
+    // Create session start time by combining date and time
+    const sessionStart = new Date(session.date);
+    const [hours, minutes] = session.time.split(':');
+    sessionStart.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // Calculate session end time by adding duration
+    const sessionEnd = new Date(sessionStart);
+    sessionEnd.setMinutes(sessionEnd.getMinutes() + (session.duration || 60));
+    
+    // Session is completed if current time is after session end time
+    return now > sessionEnd;
+  };
+
+  const isBookingCompleted = (booking) => {
+    return booking.status === 'completed' || 
+           booking.sessions.every(session => isSessionCompleted(session));
+  };
+
+  const handleReviewSession = (session, booking, sessionIndex) => {
+    setSelectedSessionForReview({
+      ...session,
+      _id: `${booking._id}_session_${sessionIndex}`, // Create unique session ID
+      educator: booking.educatorId,
+      package: booking.packageId,
+      bookingId: booking._id,
+      sessionIndex: sessionIndex
+    });
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async (reviewData) => {
+    try {
+      // Validate required fields
+      if (!reviewData.educatorId || !reviewData.packageId || !reviewData.sessionId) {
+        throw new Error('Missing required review data');
+      }
+
+      console.log('Submitting review data:', reviewData);
+      const response = await newRequest.post('/reviews/submit', reviewData);
+      console.log('Review submission response:', response.data);
+      showSuccessNotification('Review submitted successfully!');
+      
+      // Refresh bookings to update review status
+      const bookingsResponse = await newRequest.get('/bookings/student');
+      setBookings(bookingsResponse.data);
+      
+      // Notify app to refresh package ratings wherever displayed
+      try {
+        window.dispatchEvent(new CustomEvent('package-review-submitted', { detail: { packageId: reviewData.packageId } }));
+      } catch (e) {
+        console.warn('Could not dispatch package-review-submitted event:', e);
+      }
+      
+      // Force refresh package ratings (for testing)
+      try {
+        const refreshResponse = await newRequest.get(`/packages/${reviewData.packageId}/refresh-ratings`);
+        console.log('Package ratings refreshed:', refreshResponse.data);
+      } catch (refreshError) {
+        console.log('Could not refresh package ratings:', refreshError);
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      console.error('Error response:', error.response?.data);
+      showErrorNotification(error.response?.data?.message || 'Failed to submit review');
+      throw error;
+    }
   };
 
   if (loading) {
@@ -124,6 +201,21 @@ function MyBookings() {
                 >
                   <FaEye /> View Details
                 </button>
+                
+                {/* Show review button for completed bookings */}
+                {isBookingCompleted(booking) && (
+                  <div className="review-actions">
+                    {booking.sessions.map((session, index) => (
+                      <button
+                        key={index}
+                        className="review-btn"
+                        onClick={() => handleReviewSession(session, booking, index)}
+                      >
+                        <FaComment /> Rate Session {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -181,6 +273,21 @@ function MyBookings() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && selectedSessionForReview && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => {
+            setShowReviewModal(false);
+            setSelectedSessionForReview(null);
+          }}
+          educator={selectedSessionForReview.educator}
+          packageData={selectedSessionForReview.package}
+          sessionData={selectedSessionForReview}
+          onSubmitReview={handleSubmitReview}
+        />
       )}
     </div>
   );

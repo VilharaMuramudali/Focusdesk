@@ -85,9 +85,13 @@ ConversationSchema.methods.resetUnreadCount = async function(userId) {
 
 // Static method to find or create conversation between two users
 ConversationSchema.statics.findOrCreateConversation = async function(user1Id, user1Name, user1Type, user2Id, user2Name, user2Type, bookingId = null) {
-  // Check if conversation already exists
-  const existingConversation = await this.findOne({
-    'participants.userId': { $all: [user1Id, user2Id] },
+  // Normalize user IDs to ensure they're ObjectIds
+  const user1ObjectId = typeof user1Id === 'string' ? new mongoose.Types.ObjectId(user1Id) : user1Id;
+  const user2ObjectId = typeof user2Id === 'string' ? new mongoose.Types.ObjectId(user2Id) : user2Id;
+
+  // Check if conversation already exists (try multiple queries to handle race conditions)
+  let existingConversation = await this.findOne({
+    'participants.userId': { $all: [user1ObjectId, user2ObjectId] },
     participants: { $size: 2 },
     isActive: true
   });
@@ -96,25 +100,45 @@ ConversationSchema.statics.findOrCreateConversation = async function(user1Id, us
     return existingConversation;
   }
 
-  // Create new conversation
-  const newConversation = new this({
-    participants: [
-      {
-        userId: user1Id,
-        userName: user1Name,
-        userType: user1Type
-      },
-      {
-        userId: user2Id,
-        userName: user2Name,
-        userType: user2Type
-      }
-    ],
-    bookingId,
-    lastActivity: new Date()
-  });
+  // Try to create new conversation with error handling for race conditions
+  try {
+    const newConversation = new this({
+      participants: [
+        {
+          userId: user1ObjectId,
+          userName: user1Name,
+          userType: user1Type
+        },
+        {
+          userId: user2ObjectId,
+          userName: user2Name,
+          userType: user2Type
+        }
+      ],
+      bookingId: bookingId || null,
+      lastActivity: new Date()
+    });
 
-  return await newConversation.save();
+    const savedConversation = await newConversation.save();
+    return savedConversation;
+  } catch (error) {
+    // If duplicate key error or other error, try to find existing conversation again
+    if (error.code === 11000 || error.name === 'MongoServerError') {
+      // Race condition: conversation was created by another request
+      existingConversation = await this.findOne({
+        'participants.userId': { $all: [user1ObjectId, user2ObjectId] },
+        participants: { $size: 2 },
+        isActive: true
+      });
+
+      if (existingConversation) {
+        return existingConversation;
+      }
+    }
+    
+    // Re-throw if we couldn't find an existing conversation
+    throw error;
+  }
 };
 
 export default mongoose.model("Conversation", ConversationSchema);

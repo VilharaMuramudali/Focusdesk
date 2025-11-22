@@ -224,6 +224,13 @@
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
     }
 
+    /* Ensure the stats card (Customer Success) does not rotate or animate unexpectedly */
+    .stats-card,
+    .stats-card * {
+      animation: none !important;
+      transform: none !important;
+    }
+
     .avatar-small {
       width: 36px;
       height: 36px;

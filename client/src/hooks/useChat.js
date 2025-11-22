@@ -25,8 +25,8 @@ export const useChat = () => {
     return await chatContext.markMessagesAsRead(conversationId);
   }, [chatContext]);
 
-  const createNewConversation = useCallback(async (participantId, participantName, bookingId = null) => {
-    return await chatContext.createConversation(participantId, participantName, bookingId);
+  const createNewConversation = useCallback(async (participantId, participantName, receiverType = null, bookingId = null) => {
+    return await chatContext.createConversation(participantId, participantName, receiverType, bookingId);
   }, [chatContext]);
 
   return {

@@ -7,6 +7,7 @@ const ProfileSection = lazy(() => import("./ProfileSection"));
 const PackagesSection = lazy(() => import("./PackagesSection"));
 const SchedulesSection = lazy(() => import("./SchedulesSection"));
 const PaymentsSection = lazy(() => import("./PaymentsSection"));
+const MessagesSection = lazy(() => import("./MessagesSection"));
 const SettingsSection = lazy(() => import("./SettingsSection"));
 const ToolsSection = lazy(() => import("./ToolsSection"));
 
@@ -29,6 +30,8 @@ export default function EducatorDashboard() {
         return <SchedulesSection />;
       case "payments":
         return <PaymentsSection />;
+      case "messages":
+        return <MessagesSection />;
       case "settings":
         return <SettingsSection />;
       case "tools":

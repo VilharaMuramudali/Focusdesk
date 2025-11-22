@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { useChat } from '../../context/ChatContext.jsx';
 import { useParams, Link } from "react-router-dom";
 import { FaStar, FaStarHalfAlt, FaRegStar, FaArrowLeft, FaUser, FaGraduationCap, FaLanguage, FaVideo } from "react-icons/fa";
 import newRequest from "../../utils/newRequest";
@@ -22,6 +24,9 @@ function EducatorProfile() {
   const [profile, setProfile] = useState(null);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const { createConversation } = useChat();
 
   useEffect(() => {
     async function fetchEducatorData() {
@@ -40,7 +45,10 @@ function EducatorProfile() {
         setPackages(packagesRes.data);
 
       } catch (err) {
+        console.error('Failed to fetch educator data:', err);
         setEducator(null);
+        // Surface backend message when available to help debugging
+        setError(err?.response?.data?.message || err.message || 'Failed to load educator');
       }
       setLoading(false);
     }
@@ -50,7 +58,8 @@ function EducatorProfile() {
   if (loading) return <div className="loading-container">Loading profile...</div>;
   if (!educator) return (
     <div className="error-container">
-      <p>Educator not found.</p>
+      <p>{error ? `Error: ${error}` : 'Educator not found.'}</p>
+      <p style={{color: '#64748b', fontSize: '0.95rem'}}>Try refreshing the page or check the console for details.</p>
       <Link to="/student-dashboard" className="back-link"><FaArrowLeft /> Back to Dashboard</Link>
     </div>
   );
@@ -63,15 +72,33 @@ function EducatorProfile() {
       <div className="profile-header">
         <div className="profile-image-section">
           {educator.img ? (
-            <img src={educator.img} alt={educator.username} className="profile-image" />
+            <img src={educator.img} alt={profile?.fullName || profile?.name || educator.username} className="profile-image" />
           ) : (
             <div className="profile-image-placeholder"><FaUser size={80} /></div>
           )}
         </div>
         <div className="profile-info-section">
-          <h1>{profile?.name || educator.username}</h1>
+          <h1>{profile?.fullName || profile?.name || educator.username}</h1>
           <RatingStars rating={profile?.rating || 0} />
           <p className="profile-bio">{profile?.bio || educator.bio || "No bio provided."}</p>
+          <div className="profile-actions">
+            <button className="message-btn" onClick={async () => {
+              if (!educator) return;
+              try {
+                const conversation = await createConversation(
+                  educator._id,
+                  educator.fullName || educator.name || educator.username,
+                  'educator',
+                );
+                // Navigate to messages and open conversation
+                navigate(`/messages?conversationId=${conversation._id}`);
+              } catch (err) {
+                console.error('Failed to open conversation:', err);
+              }
+            }}>
+              Message
+            </button>
+          </div>
           {profile?.qualifications && (
             <div className="profile-qualifications">
               <FaGraduationCap /> <span>{profile.qualifications}</span>

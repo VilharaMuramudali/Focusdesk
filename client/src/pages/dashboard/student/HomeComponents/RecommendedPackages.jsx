@@ -60,25 +60,32 @@ const RecommendedPackages = ({ getImageUrl, handleImageLoad, handleImageError })
     }
   };
 
+  // Get server URL for image paths
+  const getServerUrl = () => {
+    return import.meta.env.VITE_API_URL || "http://localhost:8800";
+  };
+
   // Helper function to get the correct profile picture URL
   const getProfilePictureUrl = (tutor) => {
-    if (!tutor) return '/img/default-avatar.png';
+    if (!tutor) return '/img/noavatar.jpg';
     
     const profilePic = tutor.profilePicture || tutor.img || tutor.avatar || tutor.picture;
     
-    if (!profilePic) return '/img/default-avatar.png';
+    if (!profilePic) return '/img/noavatar.jpg';
     
     // If it's already a full URL (starts with http:// or https://)
     if (profilePic.startsWith('http://') || profilePic.startsWith('https://')) {
       return profilePic;
     }
     
-    // If it's a relative path, construct the full URL
-    // Remove leading slash if present to avoid double slashes
-    const cleanPath = profilePic.startsWith('/') ? profilePic.substring(1) : profilePic;
+    // If it's already a public path, use it as is
+    if (profilePic.startsWith('/img/') || profilePic.startsWith('/public/')) {
+      return profilePic;
+    }
     
-    // Use the base URL from your API configuration
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8800';
+    // If it's a relative path, construct the full URL
+    const cleanPath = profilePic.startsWith('/') ? profilePic.substring(1) : profilePic;
+    const baseUrl = getServerUrl();
     return `${baseUrl}/${cleanPath}`;
   };
 
@@ -86,15 +93,40 @@ const RecommendedPackages = ({ getImageUrl, handleImageLoad, handleImageError })
   const getPackageImageUrl = (pkg) => {
     const image = pkg.image || pkg.thumbnail || pkg.cover;
     
-    if (!image) return '/img/course-default.jpg';
+    if (!image) return '/img/noavatar.jpg';
     
     if (image.startsWith('http://') || image.startsWith('https://')) {
       return image;
     }
     
+    // If it's already a public path, use it as is
+    if (image.startsWith('/img/') || image.startsWith('/public/')) {
+      return image;
+    }
+    
     const cleanPath = image.startsWith('/') ? image.substring(1) : image;
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8800';
+    const baseUrl = getServerUrl();
     return `${baseUrl}/${cleanPath}`;
+  };
+
+  // Handle image error with fallback
+  const handlePackageImageError = (e) => {
+    if (e.target.dataset.retryCount === '1') {
+      // Already tried fallback, stop here to prevent infinite loop
+      return;
+    }
+    e.target.dataset.retryCount = '1';
+    e.target.src = '/img/noavatar.jpg';
+  };
+
+  // Handle avatar image error with fallback
+  const handleAvatarImageError = (e) => {
+    if (e.target.dataset.retryCount === '1') {
+      // Already tried fallback, stop here to prevent infinite loop
+      return;
+    }
+    e.target.dataset.retryCount = '1';
+    e.target.src = '/img/noavatar.jpg';
   };
 
   const renderStars = (rating) => {
@@ -214,19 +246,25 @@ const RecommendedPackages = ({ getImageUrl, handleImageLoad, handleImageError })
               <div className="package-image">
                 <img
                   src={getPackageImageUrl(pkg)}
-                  alt={pkg.title}
+                  alt={pkg.title || 'Package'}
                   onLoad={handleImageLoad}
                   onError={(e) => {
-                    e.target.src = '/img/course-default.jpg';
+                    handlePackageImageError(e);
                     if (handleImageError) handleImageError(e);
                   }}
+                  loading="lazy"
                 />
-                <div className="price-badge">
-                  Rs.{pkg.price || pkg.rate || '1050'} hr
-                </div>
                 <div className="language-badges">
-                  <span className="language-badge">English</span>
-                  <span className="language-badge">Sinhala</span>
+                  {pkg.languages && pkg.languages.length > 0 ? (
+                    pkg.languages.slice(0, 2).map((lang, index) => (
+                      <span key={index} className="language-badge">{lang}</span>
+                    ))
+                  ) : (
+                    <>
+                      <span className="language-badge">English</span>
+                      <span className="language-badge">Sinhala</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="package-content">
@@ -238,16 +276,14 @@ const RecommendedPackages = ({ getImageUrl, handleImageLoad, handleImageError })
                 <div className="package-footer">
                   <img 
                     src={getProfilePictureUrl(pkg.tutor)}
-                    alt={pkg.tutor?.username || 'Tutor'}
+                    alt={pkg.tutor?.fullName || pkg.tutor?.name || pkg.tutor?.username || 'Tutor'}
                     className="tutor-avatar"
-                    onError={(e) => {
-                      console.log('Profile picture failed to load, using default');
-                      e.target.src = '/img/default-avatar.png';
-                    }}
+                    onError={handleAvatarImageError}
+                    loading="lazy"
                   />
                   <div className="tutor-info">
                     <span className="tutor-name">
-                      {pkg.tutor?.username || pkg.tutor?.name || 'Ms. Rebbeca Peterez'}
+                      {pkg.tutor?.fullName || pkg.tutor?.name || pkg.tutor?.username || 'Ms. Rebbeca Peterez'}
                     </span>
                     <div className="rating-info">
                       <div className="stars">

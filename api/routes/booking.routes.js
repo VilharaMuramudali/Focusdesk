@@ -8,6 +8,7 @@ import {
   getBookingById,
   getEducatorTransactions,
   getStudentTransactions
+  , markBookingPaid
 } from "../controllers/booking.controller.js";
 import { verifyToken, educator } from "../middleware/jwt.js";
 
@@ -58,6 +59,9 @@ router.get("/:id", verifyToken, getBookingById);
 
 // Update booking status (for educators)
 router.put("/:id/status", verifyToken, educator, updateBookingStatus);
+
+// Mark booking as paid (demo / webhook)
+router.put('/:id/paid', verifyToken, markBookingPaid);
 
 // Get educator transactions and earnings
 router.get("/educator/transactions", verifyToken, educator, getEducatorTransactions);

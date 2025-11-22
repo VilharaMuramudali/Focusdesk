@@ -164,7 +164,10 @@ reviewSchema.statics.getPackageAverageRating = async function(packageId) {
       $group: {
         _id: null,
         averageRating: { $avg: "$overallRating" },
-        totalReviews: { $sum: 1 }
+        totalReviews: { $sum: 1 },
+        ratingDistribution: {
+          $push: "$overallRating"
+        }
       }
     }
   ]);
@@ -172,14 +175,26 @@ reviewSchema.statics.getPackageAverageRating = async function(packageId) {
   if (result.length === 0) {
     return {
       averageRating: 0,
-      totalReviews: 0
+      totalReviews: 0,
+      ratingBreakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
     };
   }
 
-  const { averageRating, totalReviews } = result[0];
+  const { averageRating, totalReviews, ratingDistribution } = result[0];
+  
+  // Calculate rating distribution
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  ratingDistribution.forEach(rating => {
+    const roundedRating = Math.round(rating);
+    if (roundedRating >= 1 && roundedRating <= 5) {
+      distribution[roundedRating] = (distribution[roundedRating] || 0) + 1;
+    }
+  });
+  
   return {
     averageRating: Math.round(averageRating * 10) / 10,
-    totalReviews
+    totalReviews,
+    ratingBreakdown: distribution
   };
 };
 

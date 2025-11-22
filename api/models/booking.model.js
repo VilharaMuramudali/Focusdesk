@@ -41,6 +41,15 @@ const bookingSchema = new Schema({
       default: 'scheduled'
     },
     notes: String
+    ,
+    payout: {
+      halfPaid: { type: Boolean, default: false },
+      halfPaidAt: Date,
+      halfAmount: { type: Number, default: 0 },
+      fullPaid: { type: Boolean, default: false },
+      fullPaidAt: Date,
+      fullAmount: { type: Number, default: 0 }
+    }
   }],
   totalAmount: {
     type: Number,

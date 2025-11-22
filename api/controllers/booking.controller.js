@@ -238,14 +238,25 @@ export const getEducatorTransactions = async (req, res, next) => {
       .populate('packageId', 'title description rate subjects')
       .sort({ createdAt: -1 });
     
-    // Calculate earnings
-    const totalEarnings = bookings
-      .filter(booking => booking.paymentStatus === 'paid')
-      .reduce((sum, booking) => sum + booking.totalAmount, 0);
-    
-    const pendingEarnings = bookings
-      .filter(booking => booking.paymentStatus === 'pending')
-      .reduce((sum, booking) => sum + booking.totalAmount, 0);
+    // Calculate earnings using Payouts (half/full payouts recorded)
+    const Payout = await import('../models/payout.model.js');
+    const payouts = await Payout.default.find({ educatorId, status: 'completed' });
+    const totalEarnings = payouts.reduce((s, p) => s + (p.amount || 0), 0);
+
+    // pending earnings: bookings paid but with sessions not fully paid
+    let pendingEarnings = 0;
+    for (const booking of bookings) {
+      if (booking.paymentStatus === 'paid') {
+        const perSessionAmount = (booking.totalAmount || 0) / Math.max(1, (booking.sessions ? booking.sessions.length : 1));
+        for (const session of booking.sessions || []) {
+          const fullPaid = session.payout && session.payout.fullPaid;
+          const halfPaid = session.payout && session.payout.halfPaid;
+          if (!fullPaid) {
+            pendingEarnings += fullPaid ? 0 : (halfPaid ? (perSessionAmount - (session.payout.halfAmount || 0)) : perSessionAmount);
+          }
+        }
+      }
+    }
     
     // Group transactions by month
     const monthlyTransactions = {};
@@ -376,3 +387,20 @@ export const getStudentTransactions = async (req, res, next) => {
     next(createError(500, "Failed to fetch student transactions"));
   }
 }; 
+
+// Mark a booking as paid (demo / webhook target)
+export const markBookingPaid = async (req, res, next) => {
+  try {
+    const bookingId = req.params.id;
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return next(createError(404, 'Booking not found'));
+
+    booking.paymentStatus = 'paid';
+    await booking.save();
+
+    res.status(200).json({ success: true, message: 'Booking marked as paid', booking });
+  } catch (err) {
+    console.error('Error marking booking paid:', err);
+    next(createError(500, 'Failed to mark booking as paid'));
+  }
+};

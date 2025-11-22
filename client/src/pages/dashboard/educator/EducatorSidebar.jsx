@@ -7,6 +7,7 @@ import {
   FaCog,
   FaTools,
   FaSignOutAlt,
+  FaEnvelope,
 } from "react-icons/fa";
 import "./educatorSidebar.scss";
 
@@ -46,6 +47,13 @@ export default function EducatorSidebar({ tab, setTab }) {
         >
           <FaCreditCard className="ed-sidebar-icon" />
           <span>Payments</span>
+        </div>
+        <div
+          className={`ed-sidebar-item ${tab === "messages" ? "active" : ""}`}
+          onClick={() => setTab("messages")}
+        >
+          <FaEnvelope className="ed-sidebar-icon" />
+          <span>Messages</span>
         </div>
         <div
           className={`ed-sidebar-item ${tab === "settings" ? "active" : ""}`}

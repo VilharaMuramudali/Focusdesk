@@ -135,6 +135,20 @@ export const createMessage = async (req, res, next) => {
     // Increment unread count for receiver
     await conversation.incrementUnreadCount(receiver.userId);
 
+    // Emit message to conversation room via Socket.io if available
+    try {
+      const io = req.app && req.app.get && req.app.get('io');
+      if (io) {
+        const roomId = conversationId.toString();
+        io.to(roomId).emit('message', { conversationId: roomId, message: populatedMessage });
+        // also emit a delivered/ack event for sender UI feedback
+        io.to(roomId).emit('message_delivered', { conversationId: roomId, message: populatedMessage });
+      }
+    } catch (emitErr) {
+      // Log but don't fail the request
+      console.error('Failed to emit message via Socket.io:', emitErr);
+    }
+
     res.status(201).json(populatedMessage);
   } catch (err) {
     next(err);

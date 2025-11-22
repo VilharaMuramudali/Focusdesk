@@ -32,7 +32,7 @@ const RecommendedCourses = ({ getImageUrl, handleImageLoad, handleImageError }) 
       
       if (response.data.success) {
         // Transform the API data to match our component structure
-        const sessions = response.data.bookings.map(booking => ({
+          const sessions = response.data.bookings.map(booking => ({
           id: booking._id,
           date: new Date(booking.sessionDate),
           time: new Date(booking.sessionDate).toLocaleTimeString('en-US', { 
@@ -42,7 +42,7 @@ const RecommendedCourses = ({ getImageUrl, handleImageLoad, handleImageError }) 
           }),
           duration: `${booking.duration || 60} minutes`,
           subject: booking.package?.title || 'Session',
-          instructor: booking.tutor?.username || 'Instructor',
+          instructor: booking.tutor?.fullName || booking.tutor?.name || booking.tutor?.username || 'Instructor',
           instructorImg: booking.tutor?.img || null,
           package: booking.package,
           status: booking.status

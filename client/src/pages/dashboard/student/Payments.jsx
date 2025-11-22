@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { 
   FaDollarSign, 
   FaChartLine, 
@@ -19,6 +19,7 @@ import {
   FaStar
 } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
+import { CurrencyContext } from "../../../context/CurrencyContext.jsx";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import "./Payments.scss";
 
@@ -169,11 +170,43 @@ export default function Payments() {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: "USD"
-    }).format(amount);
+  const { convertCurrency, getCurrencySymbol } = useContext(CurrencyContext);
+
+  // Force display currency to LKR for student Payments view as requested
+  const DISPLAY_CURRENCY = 'LKR';
+
+  const localeForCurrency = (code) => {
+    switch (code) {
+      case 'INR': return 'en-IN';
+      case 'LKR': return 'en-LK';
+      case 'EUR': return 'de-DE';
+      case 'GBP': return 'en-GB';
+      case 'JPY': return 'ja-JP';
+      case 'CNY': return 'zh-CN';
+      default: return 'en-US';
+    }
+  };
+
+  const formatCurrency = (amount, fromCurrency = 'USD') => {
+    const baseAmount = amount || 0;
+    let converted = baseAmount;
+    try {
+      converted = convertCurrency(baseAmount, fromCurrency, DISPLAY_CURRENCY);
+    } catch (err) {
+      converted = baseAmount;
+    }
+
+    const locale = localeForCurrency(DISPLAY_CURRENCY);
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: DISPLAY_CURRENCY,
+        maximumFractionDigits: 2
+      }).format(converted);
+    } catch (err) {
+      const symbol = getCurrencySymbol(DISPLAY_CURRENCY) || DISPLAY_CURRENCY;
+      return `${symbol}${converted.toFixed(2)}`;
+    }
   };
 
   const formatDate = (dateString) => {
@@ -211,7 +244,7 @@ export default function Payments() {
   };
 
   const filteredTransactions = transactions?.recentTransactions?.filter(transaction => {
-    const educatorName = transaction.educatorId?.username?.toLowerCase() || "";
+    const educatorName = (transaction.educatorId?.fullName || transaction.educatorId?.name || transaction.educatorId?.username || "").toLowerCase();
     const packageTitle = transaction.packageId?.title?.toLowerCase() || "";
     const searchLower = searchTerm.toLowerCase();
     
@@ -384,11 +417,11 @@ export default function Payments() {
                 <div className="table-cell educator-info">
                   <img 
                     src={transaction.educatorId?.img || "/img/noavatar.jpg"} 
-                    alt={transaction.educatorId?.username || "Educator"}
+                    alt={transaction.educatorId?.fullName || transaction.educatorId?.name || transaction.educatorId?.username || "Educator"}
                     className="educator-avatar"
                   />
                   <div className="educator-details">
-                    <span className="educator-name">{transaction.educatorId?.username || "Unknown Educator"}</span>
+                    <span className="educator-name">{transaction.educatorId?.fullName || transaction.educatorId?.name || transaction.educatorId?.username || "Unknown Educator"}</span>
                     <span className="educator-subjects">
                       {transaction.educatorId?.subjects?.join(", ") || "No subjects"}
                     </span>
@@ -490,11 +523,11 @@ export default function Payments() {
                 <div className="educator-detail">
                   <img 
                     src={selectedTransaction.educatorId?.img || "/img/noavatar.jpg"} 
-                    alt={selectedTransaction.educatorId?.username || "Educator"}
+                    alt={selectedTransaction.educatorId?.fullName || selectedTransaction.educatorId?.name || selectedTransaction.educatorId?.username || "Educator"}
                     className="educator-avatar-large"
                   />
                   <div className="educator-info-detail">
-                    <h4>{selectedTransaction.educatorId?.username || 'Unknown Educator'}</h4>
+                    <h4>{selectedTransaction.educatorId?.fullName || selectedTransaction.educatorId?.name || selectedTransaction.educatorId?.username || 'Unknown Educator'}</h4>
                     <p>{selectedTransaction.educatorId?.email || 'No email'}</p>
                     <div className="educator-rating-detail">
                       <FaStar className="star-icon" />

@@ -34,7 +34,7 @@ const CourseCard = ({ course, onContinue, onViewMaterials, onBookmark }) => {
       <div className="course-header">
         <div className="course-info">
           <h3>{course.packageId?.title || 'Course Title'}</h3>
-          <p>by {course.educatorId?.username || 'Educator'}</p>
+          <p>by {course.educatorId?.fullName || course.educatorId?.name || course.educatorId?.username || 'Educator'}</p>
         </div>
         <div className={`course-status ${status}`}>
           {status === 'completed' ? 'Completed' : 

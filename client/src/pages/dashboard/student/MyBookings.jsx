@@ -151,12 +151,12 @@ function MyBookings() {
                 <div className="educator-info">
                   <img 
                     src={booking.educatorId?.img || '/img/noavatar.jpg'} 
-                    alt={booking.educatorId?.username}
+                    alt={booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || 'Educator'}
                     className="educator-avatar"
                   />
                   <div>
                     <h4>{booking.packageId?.title}</h4>
-                    <p>with {booking.educatorId?.username}</p>
+                    <p>with {booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username}</p>
                   </div>
                 </div>
                 <div className={`status-badge ${booking.status}`}>
@@ -236,8 +236,8 @@ function MyBookings() {
               <div className="detail-row">
                 <strong>Package:</strong> {selectedBooking.packageId?.title}
               </div>
-              <div className="detail-row">
-                <strong>Educator:</strong> {selectedBooking.educatorId?.username}
+                <div className="detail-row">
+                <strong>Educator:</strong> {selectedBooking.educatorId?.fullName || selectedBooking.educatorId?.name || selectedBooking.educatorId?.username}
               </div>
               <div className="detail-row">
                 <strong>Status:</strong> 

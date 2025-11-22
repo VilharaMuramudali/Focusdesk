@@ -50,11 +50,8 @@ export default function HomeOverview({ onPreferencesUpdate, refreshKey, onEditPr
     try {
       // Track dashboard view
       await newRequest.post('/recommend/track', {
-        type: 'dashboard_view',
-        metadata: {
-          page: 'home_overview',
-          timestamp: new Date().toISOString()
-        }
+        interactionType: 'dashboard_view',
+        recommendationSource: 'home_overview'
       });
     } catch (error) {
       console.error('Error tracking user behavior:', error);
@@ -64,30 +61,17 @@ export default function HomeOverview({ onPreferencesUpdate, refreshKey, onEditPr
   // Fetch personalized recommendations
   const fetchPersonalizedRecommendations = async () => {
     try {
-      const tutorsResponse = await newRequest.get('/recommend/tutors');
-      if (tutorsResponse.data.success) {
-        setRecommendedTutors(tutorsResponse.data.recommendedTutors || []);
-        setTopSubjects(tutorsResponse.data.topSubjects || []);
+      // Get ML-powered personalized package recommendations
+      const response = await newRequest.get('/recommend/personalized?limit=10');
+      if (response.data.success && response.data.data.recommendations) {
+        console.log('ML Recommendations loaded:', response.data.data.recommendations.length);
+        setRecommendedPackages(response.data.data.recommendations || []);
       }
       
-      const workPlanResponse = await newRequest.get('/recommend/workplan');
-      if (workPlanResponse.data.success) {
-        setWorkPlan(workPlanResponse.data.plan || []);
-      }
-      
-      // Fetch personalized package recommendations
-      const packagesResponse = await newRequest.get('/packages/recommended');
-      if (packagesResponse.data.packages) {
-        setRecommendedPackages(packagesResponse.data.packages || []);
-        
-        // Show personalization feedback
-        if (packagesResponse.data.isPersonalized) {
-          console.log('Personalized recommendations loaded:', packagesResponse.data.message);
-          // You can add a toast notification here
-        } else {
-          console.log('General recommendations loaded:', packagesResponse.data.message);
-        }
-      }
+      // Fallback defaults
+      setRecommendedTutors([]);
+      setTopSubjects(['Mathematics', 'Science', 'English']);
+      setWorkPlan([]);
     } catch (error) {
       console.error('Error fetching personalized recommendations:', error);
       setRecommendedTutors([]);

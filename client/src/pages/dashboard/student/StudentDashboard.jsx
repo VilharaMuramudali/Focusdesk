@@ -63,6 +63,7 @@ function StudentDashboard() {
   const [hasPreferences, setHasPreferences] = useState(false);
   const [preferencesChecked, setPreferencesChecked] = useState(false);
   const [preferencesRefreshKey, setPreferencesRefreshKey] = useState(0);
+  const [mlRecommendations, setMlRecommendations] = useState([]);
   
   // Message modal states
   const [showChatModal, setShowChatModal] = useState(false);
@@ -98,11 +99,8 @@ function StudentDashboard() {
     try {
       // Track dashboard view
       await newRequest.post('/recommend/track', {
-        type: 'dashboard_view',
-        metadata: {
-          page: 'student_dashboard',
-          timestamp: new Date().toISOString()
-        }
+        interactionType: 'dashboard_view',
+        recommendationSource: 'student_dashboard'
       });
     } catch (error) {
       console.error('Error tracking user behavior:', error);
@@ -149,20 +147,16 @@ function StudentDashboard() {
   // Fetch personalized recommendations
   const fetchPersonalizedRecommendations = async () => {
     try {
-      // Get personalized tutor recommendations
-      const tutorsResponse = await newRequest.get('/recommend/tutors');
-      if (tutorsResponse.data.success) {
-        setRecommendedTutors(tutorsResponse.data.recommendedTutors || []);
-        setTopSubjects(tutorsResponse.data.topSubjects || []);
-      }
-      
-      // Get personalized work plan
-      const workPlanResponse = await newRequest.get('/recommend/workplan');
-      if (workPlanResponse.data.success) {
-        setWorkPlan(workPlanResponse.data.plan || []);
+      // Get ML-powered personalized package recommendations
+      const response = await newRequest.get('/recommend/personalized?limit=10');
+      if (response.data.success && response.data.data.recommendations) {
+        const recommendations = response.data.data.recommendations;
+        console.log('ML Recommendations loaded:', recommendations.length);
+        setMlRecommendations(recommendations);
       }
     } catch (error) {
       console.error('Error fetching personalized recommendations:', error);
+      setMlRecommendations([]);
       // Fallback to basic recommendations
       setRecommendedTutors([]);
       setTopSubjects(['Mathematics', 'Science', 'English']);
@@ -1161,6 +1155,93 @@ function StudentDashboard() {
             ) : activeSection === "packages" ? (
               // Courses Section - now shows the tutors/package cards
               <div className="tutors-section">
+                {/* ML Recommended Packages Section */}
+                {mlRecommendations.length > 0 && (
+                  <div className="recommended-section" style={{ marginBottom: '2rem' }}>
+                    <div className="section-header">
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1a1a1a', marginBottom: '1rem' }}>
+                        🎯 Recommended For You
+                      </h2>
+                      <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                        Personalized package recommendations based on your learning preferences and activity
+                      </p>
+                    </div>
+                    <div className="tutors-grid" style={{ marginBottom: '2rem' }}>
+                      {mlRecommendations.slice(0, 6).map(item => {
+                        const pkg = item.package;
+                        if (!pkg) return null;
+                        return (
+                          <div className="tutor-card" key={pkg._id} style={{ position: 'relative' }}>
+                            {/* ML Badge */}
+                            <div style={{
+                              position: 'absolute',
+                              top: '10px',
+                              left: '10px',
+                              backgroundColor: '#4CAF50',
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              zIndex: 2,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}>
+                              {item.score ? `${Math.round(item.score * 100)}% Match` : 'Recommended'}
+                            </div>
+                            
+                            <div className="package-image">
+                              <img
+                                src={getPackageImageUrl(pkg)}
+                                alt={pkg.title || 'Package'}
+                                onError={handlePackageImageError}
+                                loading="lazy"
+                              />
+                            </div>
+                            
+                            <div className="tutor-info">
+                              <h3 className="tutor-name">{pkg.title}</h3>
+                              <p className="tutor-subject">{pkg.subject || 'General'}</p>
+                              
+                              {pkg.educator && (
+                                <div className="educator-info" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                  <FaUserCircle style={{ color: '#666' }} />
+                                  <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                                    {pkg.educator.fullName || pkg.educator.username}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {pkg.averageRating > 0 && (
+                                <div className="rating" style={{ marginTop: '0.5rem' }}>
+                                  {renderStars(pkg.averageRating)}
+                                  <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '0.5rem' }}>
+                                    ({pkg.totalReviews || 0})
+                                  </span>
+                                </div>
+                              )}
+                              
+                              <div className="tutor-details" style={{ marginTop: '0.75rem' }}>
+                                <div className="price" style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1a1a1a' }}>
+                                  {formatPrice(pkg.price)}
+                                </div>
+                              </div>
+                              
+                              <button
+                                className="view-profile-btn"
+                                onClick={() => navigate(`/package/${pkg._id}`)}
+                                style={{ marginTop: '1rem', width: '100%' }}
+                              >
+                                View Package
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <hr style={{ border: 'none', borderTop: '1px solid #e0e0e0', margin: '2rem 0' }} />
+                  </div>
+                )}
+                
                 <div className="section-header">
                   <div className="results-info">
                     Showing {indexOfFirstPackage + 1}-{Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results

@@ -7,6 +7,8 @@ import { useNotifications } from '../../../hooks/useNotifications';
 import { CurrencyContext } from '../../../context/CurrencyContext.jsx';
 import BookingForm from "../../../components/bookingForm/BookingForm";
 import RatingDisplay from "../../../components/RatingDisplay";
+import SimilarPackages from "../../../components/SimilarPackages/SimilarPackages";
+import tracker from "../../../services/recommendationTracker";
 import "./packageDetail.scss";
 
 function PackageDetail() {
@@ -31,51 +33,12 @@ function PackageDetail() {
   const { currency: selectedCurrency, convertCurrency, getCurrencySymbol } = useContext(CurrencyContext);
 
   useEffect(() => {
-    const viewStartTime = new Date();
-    let timeSpent = 0;
-    
-    const trackViewEnd = async () => {
-      const viewEndTime = new Date();
-      timeSpent = Math.floor((viewEndTime - viewStartTime) / 1000);
-      
-      if (id && timeSpent > 0) {
-        try {
-          const searchQuery = new URLSearchParams(window.location.search).get('search') || 
-                             sessionStorage.getItem('lastSearchQuery') || null;
-          const searchKeywords = searchQuery ? 
-            searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 2) : [];
-          
-          await newRequest.post('/recommend/track-package-view', {
-            packageId: id,
-            timeSpent,
-            viewStartTime: viewStartTime.toISOString(),
-            viewEndTime: viewEndTime.toISOString(),
-            searchQuery,
-            searchKeywords
-          });
-        } catch (error) {
-          console.error('Error tracking package view:', error);
-        }
-      }
-    };
-    
-    const handleBeforeUnload = () => {
-      trackViewEnd();
-    };
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        trackViewEnd();
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Track package view with ML tracker
+    tracker.trackView(id);
     
     return () => {
-      trackViewEnd();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Track view end when leaving the page
+      tracker.trackViewEnd(id);
     };
   }, [id]);
 
@@ -518,6 +481,9 @@ function PackageDetail() {
           </div>
         </div>
       )}
+      
+      {/* ML-powered similar packages recommendations */}
+      <SimilarPackages packageId={id} />
     </div>
   );
 }

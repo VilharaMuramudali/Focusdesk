@@ -1,69 +1,107 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React from "react";
-import { Link, useParams } from "react-router-dom";
-import newRequest from "../../utils/newRequest";
-import "./Message.scss";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useChat } from '../../context/ChatContext.jsx';
+import ChatWindow from '../../components/chat/ChatWindow';
+import StudentSidebar from '../dashboard/student/StudentSidebar';
+import EducatorSidebar from '../dashboard/educator/EducatorSidebar';
+import newRequest from '../../utils/newRequest';
+import './Message.scss';
 
 const Message = () => {
-  const { id } = useParams();
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  const { id } = useParams(); // conversation ID
+  const navigate = useNavigate();
+  const { activeConversation, setActiveConversation, conversations } = useChat();
+  const [isLoading, setIsLoading] = useState(true);
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
-  const queryClient = useQueryClient();
-
-  const { isLoading, error, data } = useQuery({
-    queryKey: ["messages"],
-    queryFn: () =>
-      newRequest.get(`/messages/${id}`).then((res) => {
-        return res.data;
-      }),
-  });
-
-  const mutation = useMutation({
-    mutationFn: (message) => {
-      return newRequest.post(`/messages`, message);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["messages"]);
-    },
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    mutation.mutate({
-      conversationId: id,
-      desc: e.target[0].value,
-    });
-    e.target[0].value = "";
+  const handleLogout = async () => {
+    try {
+      await newRequest.post('/auth/logout');
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error logging out:', error);
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
+    }
   };
 
-  return (
-    <div className="message">
-      <div className="container">
-        <span className="breadcrumbs">
-          <Link to="/messages">Messages</Link>  John Doe 
-        </span>
-        {isLoading ? (
-          "loading"
-        ) : error ? (
-          "error"
+  useEffect(() => {
+    const loadConversation = async () => {
+      setIsLoading(true);
+      try {
+        // First check if conversation is already in the chat context
+        const found = conversations.find(c => String(c._id) === String(id));
+        if (found) {
+          setActiveConversation(found);
+          setIsLoading(false);
+          return;
+        }
+
+        // Otherwise fetch from API
+        const response = await newRequest.get(`/conversations/${id}`);
+        if (response && response.data) {
+          setActiveConversation(response.data);
+        }
+      } catch (error) {
+        console.error('Error loading conversation:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) {
+      loadConversation();
+    }
+  }, [id, conversations, setActiveConversation]);
+
+  const handleBack = () => {
+    navigate('/messages');
+  };
+
+  const handleCall = () => {
+    console.log('Voice call requested');
+  };
+
+  const handleVideoCall = () => {
+    console.log('Video call requested');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="message-page">
+        {currentUser?.isEducator ? (
+          <EducatorSidebar tab="messages" setTab={() => {}} />
         ) : (
-          <div className="messages">
-            {data.map((m) => (
-              <div className={m.userId === currentUser._id ? "owner item" : "item"} key={m._id}>
-                <img
-                  src="https://images.pexels.com/photos/270408/pexels-photo-270408.jpeg?auto=compress&cs=tinysrgb&w=1600"
-                  alt=""
-                />
-                <p>{m.desc}</p>
-              </div>
-            ))}
-          </div>
+          <StudentSidebar onLogout={handleLogout} username={currentUser?.username} />
         )}
-        <hr />
-        <form className="write" onSubmit={handleSubmit}>
-          <textarea type="text" placeholder="write a message" />
-          <button type="submit">Send</button>
-        </form>
+        <div className="message-content-wrapper">
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading conversation...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="message-page">
+      {currentUser?.isEducator ? (
+        <EducatorSidebar tab="messages" setTab={() => {}} />
+      ) : (
+        <StudentSidebar onLogout={handleLogout} username={currentUser?.username} />
+      )}
+      
+      <div className="message-content-wrapper">
+        <div className="message-container">
+          <ChatWindow
+            conversation={activeConversation}
+            onBack={handleBack}
+            onCall={handleCall}
+            onVideoCall={handleVideoCall}
+          />
+        </div>
       </div>
     </div>
   );

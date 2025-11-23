@@ -230,29 +230,21 @@
 
       .session-content {
         position: absolute;
+        /* place below the status bar */
         top: 30px;
         left: 13px;
         right: 13px;
-        bottom: 25px;
+        /* keep above the action bar (reduced height) */
+        bottom: 76px;
         display: flex;
         flex-direction: row;
         align-items: flex-start;
         gap: 15px;
       }
 
+      /* legacy message-icon removed from markup, keep minimal styles for compatibility */
       .message-icon {
-        width: 25px;
-        height: 25px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #3b7eff;
-        
-
-        svg {
-          width: 17px;
-          height: 17px;
-        }
+        display: none;
       }
 
       .session-details {
@@ -399,39 +391,42 @@
         }
       }
 
-              .session-actions {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 12px 16px;
-          background: white;
-          border-top: 1px solid #e9ecef;
-
+                .session-actions {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              /* reduced footer height */
+              height: 48px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              padding: 8px 12px;
+              background: white;
+              border-top: 1px solid #e9ecef;
         .chat-btn {
-          background: none;
+          background: transparent;
           border: none;
-          color: #3b7eff;
+          color: #1f6bed;
           cursor: pointer;
-          width: 25px;
-          height: 25px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: opacity 0.2s;
+          transition: opacity 0.2s, transform 0.12s;
+          border-radius: 50%;
+          box-shadow: none;
 
           &:hover {
-            opacity: 0.7;
+            opacity: 0.9;
+            transform: translateY(-1px);
           }
 
           svg {
-            width: 17px;
-            height: 17px;
+            width: 16px;
+            height: 16px;
           }
         }
 
@@ -441,11 +436,11 @@
             border: none;
             border-radius: 8px;
             padding: 5px 12px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
-            height: 25px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -473,11 +468,11 @@
             border: none;
             border-radius: 8px;
             padding: 5px 12px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             cursor: not-allowed;
-            opacity: 0.7;
-            height: 25px;
+            opacity: 0.9;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -491,11 +486,11 @@
             border: none;
             border-radius: 8px;
             padding: 5px 12px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
-            height: 25px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;

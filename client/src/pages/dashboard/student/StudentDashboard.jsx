@@ -2,13 +2,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaUser, FaHome, FaBook, 
   FaChevronLeft, FaChevronRight, FaSignOutAlt, FaCaretDown, FaCog, FaUserCircle, 
-  FaExternalLinkAlt, FaGlobe, FaPlay, FaFileAlt, FaYoutube } from "react-icons/fa";
+  FaExternalLinkAlt, FaGlobe, FaPlay, FaFileAlt, FaYoutube, FaMapMarkerAlt, 
+  FaArrowLeft, FaGraduationCap, FaLanguage, FaVideo, FaComments, FaPaperPlane } from "react-icons/fa";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import RatingStars from "../../../components/RatingStars";
 import "./studentDashboard.scss";
 
 import logActivity from '../../../utils/logActivity';
 import newRequest from "../../../utils/newRequest";
+import useAnalytics from '../../../hooks/useAnalytics';
+import { useChat } from "../../../hooks/useChat";
+import { useNotifications } from "../../../hooks/useNotifications";
+import { useContext } from "react";
+import { CurrencyContext } from "../../../context/CurrencyContext.jsx";
 import StudentSidebar from "./StudentSidebar";
 import FindTutors from "./FindTutors";
 import MySessions from "./MySessions";
@@ -32,6 +38,13 @@ function StudentDashboard() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [packages, setPackages] = useState([]);
+  const [tutors, setTutors] = useState([]); // State for tutors/educators
+  const [tutorsLoading, setTutorsLoading] = useState(false); // Loading state for tutors
+  const [tutorBanners, setTutorBanners] = useState({}); // map tutorId -> array of banner image urls
+  const [selectedEducator, setSelectedEducator] = useState(null); // Selected educator for detail view
+  const [educatorProfile, setEducatorProfile] = useState(null); // Educator profile details
+  const [educatorPackages, setEducatorPackages] = useState([]); // Educator's packages
+  const [educatorLoading, setEducatorLoading] = useState(false); // Loading state for educator details
   const [relatedResources, setRelatedResources] = useState([]); // New state for resources
   const [loading, setLoading] = useState(true);
   const [resourcesLoading, setResourcesLoading] = useState(false); // Loading state for resources
@@ -50,6 +63,22 @@ function StudentDashboard() {
   const [hasPreferences, setHasPreferences] = useState(false);
   const [preferencesChecked, setPreferencesChecked] = useState(false);
   const [preferencesRefreshKey, setPreferencesRefreshKey] = useState(0);
+  const [mlRecommendations, setMlRecommendations] = useState([]);
+  
+  // Message modal states
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [selectedEducatorForMessage, setSelectedEducatorForMessage] = useState(null);
+  const [messageText, setMessageText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  
+  // Chat hooks
+  const { createNewConversation, sendTextMessage, joinConversation } = useChat();
+  const { showSuccessNotification, showErrorNotification } = useNotifications();
+  
+  // Currency context
+  const { currency: selectedCurrency, convertCurrency, getCurrencySymbol } = useContext(CurrencyContext);
+  // Analytics hook
+  const { recordSearch } = useAnalytics();
 
   useEffect(() => {
     // Log dashboard view
@@ -70,34 +99,64 @@ function StudentDashboard() {
     try {
       // Track dashboard view
       await newRequest.post('/recommend/track', {
-        type: 'dashboard_view',
-        metadata: {
-          page: 'student_dashboard',
-          timestamp: new Date().toISOString()
-        }
+        interactionType: 'dashboard_view',
+        recommendationSource: 'student_dashboard'
       });
     } catch (error) {
       console.error('Error tracking user behavior:', error);
     }
   };
 
+  // Fetch up to 3 recent package thumbnails for each tutor to show in the profile banner
+  useEffect(() => {
+    let cancelled = false;
+    const fetchBanners = async () => {
+      if (!tutors || tutors.length === 0) return;
+      try {
+        const map = {};
+        await Promise.all(tutors.map(async (tutor) => {
+          try {
+            const res = await newRequest.get(`/packages/public?educatorId=${tutor._id}`);
+            const pkgs = Array.isArray(res.data) ? res.data : (res.data.packages || []);
+            const imgs = (pkgs || []).slice(0, 3).map(p => {
+              const image = p?.thumbnail || p?.image || p?.cover;
+              if (!image) return '/img/noavatar.jpg';
+              if (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('/')) return image;
+              const clean = image.startsWith('/') ? image.substring(1) : image;
+              return `${getServerUrl()}/${clean}`;
+            });
+            // ensure length 3
+            while (imgs.length < 3) imgs.push('/img/noavatar.jpg');
+            map[tutor._id] = imgs;
+          } catch (err) {
+            console.error('Error fetching packages for tutor', tutor._id, err);
+            map[tutor._id] = ['/img/noavatar.jpg','/img/noavatar.jpg','/img/noavatar.jpg'];
+          }
+        }));
+
+        if (!cancelled) setTutorBanners(map);
+      } catch (err) {
+        console.error('Error building tutor banners', err);
+      }
+    };
+
+    fetchBanners();
+    return () => { cancelled = true; };
+  }, [tutors]);
+
   // Fetch personalized recommendations
   const fetchPersonalizedRecommendations = async () => {
     try {
-      // Get personalized tutor recommendations
-      const tutorsResponse = await newRequest.get('/recommend/tutors');
-      if (tutorsResponse.data.success) {
-        setRecommendedTutors(tutorsResponse.data.recommendedTutors || []);
-        setTopSubjects(tutorsResponse.data.topSubjects || []);
-      }
-      
-      // Get personalized work plan
-      const workPlanResponse = await newRequest.get('/recommend/workplan');
-      if (workPlanResponse.data.success) {
-        setWorkPlan(workPlanResponse.data.plan || []);
+      // Get ML-powered personalized package recommendations
+      const response = await newRequest.get('/recommend/personalized?limit=10');
+      if (response.data.success && response.data.data.recommendations) {
+        const recommendations = response.data.data.recommendations;
+        console.log('ML Recommendations loaded:', recommendations.length);
+        setMlRecommendations(recommendations);
       }
     } catch (error) {
       console.error('Error fetching personalized recommendations:', error);
+      setMlRecommendations([]);
       // Fallback to basic recommendations
       setRecommendedTutors([]);
       setTopSubjects(['Mathematics', 'Science', 'English']);
@@ -114,6 +173,11 @@ function StudentDashboard() {
     
     // Fetch packages from backend
     fetchPackages();
+    
+    // Fetch tutors when component mounts or when activeSection changes to tutors
+    if (activeSection === "tutors") {
+      fetchTutors();
+    }
 
     // Listen for package review submissions to refresh packages ratings dynamically
     const handleReviewSubmitted = () => {
@@ -154,6 +218,72 @@ function StudentDashboard() {
       setError("Failed to load available packages");
       setLoading(false);
     }
+  };
+
+  // Fetch all tutors/educators
+  const fetchTutors = async () => {
+    try {
+      setTutorsLoading(true);
+      const response = await newRequest.get("/users/educators/all");
+      setTutors(response.data.educators || []);
+    } catch (err) {
+      console.error("Error fetching tutors:", err);
+      setError("Failed to load tutors");
+    } finally {
+      setTutorsLoading(false);
+    }
+  };
+
+  // Fetch educator details and packages
+  const fetchEducatorDetails = async (educatorId) => {
+    try {
+      setEducatorLoading(true);
+      
+      // Fetch educator basic info
+      const userRes = await newRequest.get(`/users/${educatorId}`);
+      const educator = userRes.data;
+      
+      // Fetch educator profile
+      let profile = null;
+      try {
+        const profileRes = await newRequest.get(`/educatorProfiles/user/${educatorId}`);
+        profile = profileRes.data;
+      } catch (err) {
+        console.log("No profile found, using basic info");
+      }
+      
+      // Fetch educator's packages
+      let packages = [];
+      try {
+        const packagesRes = await newRequest.get(`/packages/public?educatorId=${educatorId}`);
+        packages = packagesRes.data || [];
+      } catch (err) {
+        console.log("Error fetching packages:", err);
+      }
+      
+      setSelectedEducator(educator);
+      setEducatorProfile(profile);
+      setEducatorPackages(packages);
+    } catch (err) {
+      console.error("Error fetching educator details:", err);
+      setError("Failed to load educator details");
+    } finally {
+      setEducatorLoading(false);
+    }
+  };
+
+  // Handle view educator button click
+  const handleViewEducator = (e, tutor) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fetchEducatorDetails(tutor._id);
+  };
+
+  // Handle back to tutors list
+  const handleBackToTutors = () => {
+    setSelectedEducator(null);
+    setEducatorProfile(null);
+    setEducatorPackages([]);
   };
 
   const checkUserPreferences = async () => {
@@ -199,6 +329,103 @@ function StudentDashboard() {
   // Function to open edit preferences modal
   const handleEditPreferences = () => {
     setShowPreferencesModal(true);
+  };
+
+  // Handle message educator from tutor profile card
+  const handleMessageEducator = (tutor) => {
+    if (!tutor || !tutor._id) {
+      showErrorNotification('Educator information not available');
+      return;
+    }
+    setSelectedEducatorForMessage(tutor);
+    setShowChatModal(true);
+  };
+
+  // Handle send message to educator
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !selectedEducatorForMessage || isSending) return;
+
+    setIsSending(true);
+    try {
+      console.log('Creating conversation with educator:', selectedEducatorForMessage._id);
+      
+      // Create conversation if it doesn't exist
+      const conversation = await createNewConversation(
+        selectedEducatorForMessage._id,
+        selectedEducatorForMessage.fullName || selectedEducatorForMessage.name || selectedEducatorForMessage.username || 'Educator',
+        'educator', // receiverType
+        null // No booking ID for pre-booking messages
+      );
+
+      console.log('Conversation created/retrieved:', conversation);
+
+      if (!conversation || !conversation._id) {
+        throw new Error('Failed to create or retrieve conversation. Conversation ID is missing.');
+      }
+
+      // Join the conversation room so this client receives real-time events
+      try {
+        joinConversation(conversation._id);
+      } catch (joinErr) {
+        console.warn('Failed to join conversation room:', joinErr);
+      }
+
+      console.log('Sending message to conversation:', conversation._id);
+      
+      // Send the message
+      await sendTextMessage(conversation._id, messageText.trim());
+      
+      console.log('Message sent successfully');
+      
+      setMessageText('');
+      showSuccessNotification('Message sent successfully!');
+      
+      // Close modal and navigate to messages page
+      setShowChatModal(false);
+      setSelectedEducatorForMessage(null);
+      navigate('/messages');
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack
+      });
+      
+      // Show more specific error message
+      let errorMessage = 'Failed to send message. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Conversation not found. Please try again.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid message data. Please check and try again.';
+      }
+      
+      showErrorNotification(errorMessage);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Handle key press in message input
+  const handleMessageKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Close chat modal
+  const closeChatModal = () => {
+    setShowChatModal(false);
+    setSelectedEducatorForMessage(null);
+    setMessageText('');
+    setIsSending(false);
   };
 
   // Mock function to simulate fetching related resources from external sources
@@ -313,6 +540,15 @@ function StudentDashboard() {
         searchQuery: query,
         filters: currentFilters || {}
       });
+
+      // Also persist the search to analytics storage (best-effort)
+      try {
+        if (currentUser && currentUser._id) {
+          await recordSearch({ userId: currentUser._id, query, filters: currentFilters || {}, resultsCount: 0 });
+        }
+      } catch (err) {
+        console.warn('Failed to persist search analytics:', err?.response?.data || err.message);
+      }
     } catch (error) {
       console.error('Error tracking search query:', error);
     }
@@ -337,6 +573,10 @@ function StudentDashboard() {
   const handleSectionChange = (section) => {
     setActiveSection(section);
     setCurrentPage(1);
+    // Fetch tutors when switching to tutors section
+    if (section === "tutors") {
+      fetchTutors();
+    }
   };
 
   const toggleUserMenu = () => {
@@ -437,6 +677,120 @@ function StudentDashboard() {
     }
   };
 
+  // Get server URL for image paths
+  const getServerUrl = () => {
+    return import.meta.env.VITE_API_URL || "http://localhost:8800";
+  };
+
+  // Helper function to get the correct profile picture URL
+  const getProfilePictureUrl = (educator) => {
+    if (!educator) return '/img/noavatar.jpg';
+    
+    const profilePic = educator.img || educator.profilePicture || educator.avatar || educator.picture;
+    
+    if (!profilePic) return '/img/noavatar.jpg';
+    
+    // If it's already a full URL (starts with http:// or https://)
+    if (profilePic.startsWith('http://') || profilePic.startsWith('https://')) {
+      return profilePic;
+    }
+    
+    // If it's already a public path, use it as is
+    if (profilePic.startsWith('/img/') || profilePic.startsWith('/public/')) {
+      return profilePic;
+    }
+    
+    // If it's a relative path, construct the full URL
+    const cleanPath = profilePic.startsWith('/') ? profilePic.substring(1) : profilePic;
+    const baseUrl = getServerUrl();
+    return `${baseUrl}/${cleanPath}`;
+  };
+
+  // Helper function to get package image URL
+  const getPackageImageUrl = (pkg) => {
+    const image = pkg.thumbnail || pkg.image || pkg.cover;
+    
+    if (!image) return '/img/noavatar.jpg';
+    
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return image;
+    }
+    
+    // If it's already a public path, use it as is
+    if (image.startsWith('/img/') || image.startsWith('/public/')) {
+      return image;
+    }
+    
+    const cleanPath = image.startsWith('/') ? image.substring(1) : image;
+    const baseUrl = getServerUrl();
+    return `${baseUrl}/${cleanPath}`;
+  };
+
+  // Helper function to format package price with currency conversion
+  const formatPackagePrice = (pkg) => {
+    if (!pkg) return 'Rs.0 hr';
+    
+    const packageCurrency = pkg.currency || 'LKR';
+    const packageRate = pkg.rate || pkg.price || 0;
+    
+    // Convert to selected currency if different from package currency
+    const convertedRate = packageCurrency !== selectedCurrency
+      ? convertCurrency(packageRate, packageCurrency, selectedCurrency)
+      : packageRate;
+    
+    // Get symbol for selected currency
+    const symbol = getCurrencySymbol(selectedCurrency);
+    
+    // Format with 2 decimal places for converted rates, but keep original format if same currency
+    if (packageCurrency !== selectedCurrency) {
+      return `${symbol}${convertedRate.toFixed(2)} hr`;
+    }
+    
+    return `${symbol}${packageRate} hr`;
+  };
+
+  // Handle image error with fallback
+  const handlePackageImageError = (e) => {
+    if (e.target.dataset.retryCount === '1') {
+      // Already tried fallback, stop here to prevent infinite loop
+      return;
+    }
+    e.target.dataset.retryCount = '1';
+    e.target.src = '/img/noavatar.jpg';
+  };
+
+  // Handle avatar image error with fallback
+  const handleAvatarImageError = (e) => {
+    if (e.target.dataset.retryCount === '1') {
+      // Already tried fallback, stop here to prevent infinite loop
+      return;
+    }
+    e.target.dataset.retryCount = '1';
+    e.target.src = '/img/noavatar.jpg';
+  };
+
+  // Helper function to render stars for rating
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<FaStar key={`full-${i}`} className="star" />);
+    }
+
+    if (hasHalfStar) {
+      stars.push(<FaStarHalfAlt key="half" className="star half" />);
+    }
+
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<FaRegStar key={`empty-${i}`} className="star empty" />);
+    }
+
+    return stars;
+  };
+
 
 
   if (!currentUser) {
@@ -526,18 +880,18 @@ function StudentDashboard() {
               {/* Tab Navigation */}
               <div className="tab-navigation">
                 <button 
+                  className={`tab-btn ${activeSection === "tutors" ? "active" : ""}`}
+                  onClick={() => handleSectionChange("tutors")}
+                >
+                  <FaUser className="tab-icon" />
+                  Instructors
+                </button>
+                <button 
                   className={`tab-btn ${activeSection === "packages" ? "active" : ""}`}
                   onClick={() => handleSectionChange("packages")}
                 >
                   <FaBook className="tab-icon" />
                   Packages
-                </button>
-                <button 
-                  className={`tab-btn ${activeSection === "tutors" ? "active" : ""}`}
-                  onClick={() => handleSectionChange("tutors")}
-                >
-                  <FaUser className="tab-icon" />
-                  Tutors
                 </button>
                 <button 
                   className={`tab-btn ${activeSection === "resources" ? "active" : ""}`}
@@ -550,96 +904,344 @@ function StudentDashboard() {
             </div>
 
             {/* Content Section */}
-            {activeSection === "packages" ? (
-              <div className="packages-section">
-                <div className="section-header">
-                  <div className="results-info">
-                    Showing {indexOfFirstPackage + 1} - {Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results
+            {activeSection === "tutors" ? (
+              selectedEducator ? (
+                // Educator Details Section
+                <div className="educator-details-section">
+                  <button className="back-to-tutors-btn" onClick={handleBackToTutors}>
+                    <FaArrowLeft /> Back to Instructors
+                  </button>
+                  
+                  {educatorLoading ? (
+                    <div className="loading-container">
+                      <LoadingSpinner size="medium" text="Loading educator details..." />
                   </div>
-                  <div className="pagination-controls">
-                    <button className="pagination-btn prev" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
-                      <FaChevronLeft />
+                  ) : (
+                    <>
+                      <div className="educator-details-header">
+                        <div className="educator-profile-image-container">
+                          <img 
+                            src={getProfilePictureUrl(selectedEducator)}
+                            alt={selectedEducator.fullName || selectedEducator.name || selectedEducator.username || 'Educator'}
+                            className="educator-profile-image"
+                            onError={handleAvatarImageError}
+                            loading="lazy"
+                          />
+                          {educatorProfile?.isPro && (
+                            <div className="pro-badge-large">PRO</div>
+                          )}
+                        </div>
+                        <div className="educator-profile-info">
+                          <h2>{selectedEducator.fullName || educatorProfile?.name || selectedEducator.name || selectedEducator.username}</h2>
+                          <div className="educator-rating-section">
+                            <div className="stars">
+                              {renderStars(selectedEducator.rating || educatorProfile?.rating || 0)}
+                            </div>
+                            <span className="rating-value-large">
+                              {(selectedEducator.rating || educatorProfile?.rating || 0).toFixed(1)}
+                            </span>
+                            {selectedEducator.totalReviews > 0 && (
+                              <span className="review-count">({selectedEducator.totalReviews} reviews)</span>
+                            )}
+                          </div>
+                          <p className="educator-bio-full">
+                            {educatorProfile?.bio || selectedEducator.bio || selectedEducator.desc || "No bio provided."}
+                          </p>
+                          {selectedEducator.country && (
+                            <div className="educator-location">
+                              <FaMapMarkerAlt className="location-icon" />
+                              <span>{selectedEducator.country}</span>
+                            </div>
+                          )}
+                          {educatorProfile?.qualifications && (
+                            <div className="educator-qualifications">
+                              <FaGraduationCap className="qual-icon" />
+                              <span>{educatorProfile.qualifications}</span>
+                            </div>
+                          )}
+                          {educatorProfile?.languages && educatorProfile.languages.length > 0 && (
+                            <div className="educator-languages">
+                              <FaLanguage className="lang-icon" />
+                              <span>{educatorProfile.languages.join(", ")}</span>
+                            </div>
+                          )}
+                          {(educatorProfile?.subjects || selectedEducator.subjects) && 
+                           (educatorProfile?.subjects?.length > 0 || selectedEducator.subjects?.length > 0) && (
+                            <div className="educator-subjects">
+                              <h4>Subjects:</h4>
+                              <div className="subjects-list">
+                                {(educatorProfile?.subjects || selectedEducator.subjects || []).map((subject, idx) => (
+                                  <span key={idx} className="subject-badge">{subject}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="educator-action-buttons">
+                            <button 
+                              className="message-educator-detail-btn"
+                              onClick={() => handleMessageEducator(selectedEducator)}
+                              title="Message this instructor"
+                            >
+                              <FaComments className="message-icon" />
+                              Message Instructor
                     </button>
-                    <div className="page-number">01</div>
-                    <button className="pagination-btn next" onClick={() => setCurrentPage(Math.min(Math.ceil(filteredPackages.length / packagesPerPage), currentPage + 1))} disabled={currentPage >= Math.ceil(filteredPackages.length / packagesPerPage)}>
-                      <FaChevronRight />
-                    </button>
+                          </div>
                   </div>
                 </div>
 
-                {filteredPackages.length > 0 ? (
-                  <div className="packages-grid">
-                    {currentPackages.map(pkg => (
-                      <div className="package-card" key={pkg._id}>
-                        <div className="package-illustration">
-                          <div className="illustration-placeholder">
-                            <div className="illustration-icon">
-                              <FaBook size={40} />
+                      <div className="educator-packages-section">
+                        <h3>Available Packages</h3>
+                        {educatorPackages.length > 0 ? (
+                          <div className="educator-packages-grid">
+                            {educatorPackages.map(pkg => (
+                              <div className="educator-package-card" key={pkg._id}>
+                                <div className="package-image">
+                                  <img
+                                    src={getPackageImageUrl(pkg)}
+                                    alt={pkg.title || 'Package'}
+                                    onError={handlePackageImageError}
+                                    loading="lazy"
+                                  />
+                                  <div className="price-badge">
+                                    {formatPackagePrice(pkg)}
                             </div>
-                          </div>
-                          <div className="language-tags">
-                            {pkg.languages && pkg.languages.map((lang, index) => (
-                              <span key={index} className="lang-tag">{lang}</span>
+                                  {pkg.languages && pkg.languages.length > 0 && (
+                                    <div className="language-badges">
+                                      {pkg.languages.slice(0, 2).map((lang, index) => (
+                                        <span key={index} className="language-badge">{lang}</span>
                             ))}
                           </div>
+                                  )}
                         </div>
                         <div className="package-content">
-                          <div className="package-header">
-                            <h3 className="package-title">{pkg.title}</h3>
-                            <div className="package-price">Rs.{pkg.rate} hr</div>
+                                  <h4 className="package-title">{pkg.title || 'Untitled Package'}</h4>
+                                  <p className="package-description">
+                                    {pkg.description || pkg.desc || 'No description available'}
+                                  </p>
+                                  <div className="package-meta-info">
+                                    {pkg.sessions && (
+                                      <span className="sessions-info">Sessions: {pkg.sessions}</span>
+                                    )}
+                                    {pkg.rating && (
+                                      <div className="package-rating">
+                                        <div className="stars">
+                                          {renderStars(pkg.rating)}
                           </div>
-                          <p className="package-description">{pkg.description}</p>
-                          <div className="instructor-info">
-                            <div className="instructor-avatar">
-                              {pkg.educatorId?.img ? (
-                                <img src={pkg.educatorId.img} alt={pkg.educatorId?.username || 'Instructor'} />
+                                        <span>{pkg.rating.toFixed(1)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <Link 
+                                    to={`/package/${pkg._id}`}
+                                    className="view-package-btn"
+                                  >
+                                    View Package
+                                  </Link>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                               ) : (
-                                <div className="instructor-avatar-placeholder">
-                                  <FaUser size={16} />
+                          <div className="no-packages">
+                            <p>No packages available from this educator.</p>
                                 </div>
                               )}
                             </div>
-                            <div className="instructor-details">
-                              <p className="instructor-name">{pkg.educatorId?.username || 'Instructor'}</p>
-                              <div className="rating-section">
-                                <RatingStars 
-                                  rating={pkg.rating || 0} 
-                                  totalReviews={pkg.totalReviews || 0}
-                                  showCount={true}
-                                  size="small"
-                                  variant="compact"
-                                />
-                              </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                // Instructors Section - shows tutor profiles
+                <div className="tutors-profile-section">
+                  {tutorsLoading ? (
+                    <div className="loading-container">
+                      <LoadingSpinner size="medium" text="Loading tutors..." />
+                    </div>
+                  ) : tutors.length > 0 ? (
+                    <div className="tutors-profile-grid">
+                      {tutors.map(tutor => (
+                        <div className="tutor-profile-card" key={tutor._id}>
+                          {/* Profile banner showing up to 3 latest package images */}
+                          <div className="profile-banner">
+                            {
+                              (() => {
+                                // Prefer pre-fetched banners (tutorBanners), fallback to tutor.latestPackages if available
+                                const fetched = tutorBanners && tutorBanners[tutor._id];
+                                const imgs = Array.isArray(fetched) && fetched.length ? fetched : (Array.isArray(tutor.latestPackages) && tutor.latestPackages.length ? tutor.latestPackages.slice(0,3).map(p => {
+                                  const image = (typeof p === 'string') ? p : (p && (p.thumbnail || p.image || p.cover));
+                                  if (!image) return '/img/noavatar.jpg';
+                                  if (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('/')) return image;
+                                  const clean = image.startsWith('/') ? image.substring(1) : image;
+                                  return `${getServerUrl()}/${clean}`;
+                                }) : []);
+
+                                // fill up to 3 with placeholders if needed
+                                while (imgs.length < 3) imgs.push('/img/noavatar.jpg');
+
+                                return imgs.map((src, i) => (
+                                  <img key={i} src={src} alt={`pkg-${i}`} className={`banner-img banner-img-${i}`} onError={handlePackageImageError} />
+                                ));
+                              })()
+                            }
+
+                            <div className="avatar-wrapper">
+                              <img 
+                                src={getProfilePictureUrl(tutor)}
+                                alt={tutor.fullName || tutor.name || tutor.username || 'Tutor'}
+                                className="profile-picture"
+                                onError={handleAvatarImageError}
+                                loading="lazy"
+                              />
+                              {tutor.isPro && (
+                                <div className="pro-badge">PRO</div>
+                              )}
                             </div>
-                            <Link 
-                              to={`/package/${pkg._id}${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`} 
-                              className="view-btn"
-                              onClick={() => {
-                                // Store search query for package view tracking
-                                if (searchQuery.trim().length > 0) {
-                                  sessionStorage.setItem('lastSearchQuery', searchQuery.trim());
-                                }
-                                console.log('View button clicked for package:', pkg);
-                                console.log('Package ID:', pkg._id);
-                                console.log('Package data:', pkg);
-                              }}
+                          </div>
+
+                          <div className="tutor-profile-info">
+                            <h3 className="tutor-name">{tutor.fullName || tutor.name || tutor.username || 'Instructor'}</h3>
+                            {tutor.country && (
+                              <div className="tutor-location">
+                                <FaMapMarkerAlt className="location-icon" />
+                                <span>{tutor.country}</span>
+                              </div>
+                            )}
+
+                            <div className="tutor-rating">
+                              <div className="stars">
+                                {renderStars(tutor.rating || 0)}
+                              </div>
+                              <span className="rating-value">{tutor.rating ? tutor.rating.toFixed(1) : '0.0'}</span>
+                            </div>
+
+                            {tutor.languages && tutor.languages.length > 0 && (
+                              <div className="language-badges">
+                                {tutor.languages.slice(0, 2).map((lang, index) => (
+                                  <span key={index} className="language-badge">{lang === 'Sinhala' ? 'සිංහල' : lang}</span>
+                                ))}
+                              </div>
+                            )}
+
+                            {tutor.bio && (
+                              <p className="tutor-bio">{tutor.bio}</p>
+                            )}
+                          </div>
+                          <div className="tutor-card-buttons">
+                            <button 
+                              className="view-profile-btn"
+                              onClick={(e) => handleViewEducator(e, tutor)}
                             >
                               View
-                            </Link>
-                          </div>
+                            </button>
+                            <button 
+                              className="message-educator-btn"
+                              onClick={() => handleMessageEducator(tutor)}
+                              title="Message this instructor"
+                            >
+                              <FaComments className="message-icon" />
+                              Message
+                            </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="no-results">
-                    <p>No packages found matching your criteria.</p>
+                      <p>No tutors available at the moment.</p>
                   </div>
                 )}
               </div>
-            ) : activeSection === "tutors" ? (
-              // Tutors Section
+              )
+            ) : activeSection === "packages" ? (
+              // Courses Section - now shows the tutors/package cards
               <div className="tutors-section">
+                {/* ML Recommended Packages Section */}
+                {mlRecommendations.length > 0 && (
+                  <div className="recommended-section" style={{ marginBottom: '2rem' }}>
+                    <div className="section-header">
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1a1a1a', marginBottom: '1rem' }}>
+                        🎯 Recommended For You
+                      </h2>
+                      <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                        Personalized package recommendations based on your learning preferences and activity
+                      </p>
+                    </div>
+                    <div className="tutors-grid" style={{ marginBottom: '2rem' }}>
+                      {mlRecommendations.slice(0, 6).map(item => {
+                        const pkg = item.package;
+                        if (!pkg) return null;
+                        return (
+                          <div className="tutor-card" key={pkg._id} style={{ position: 'relative' }}>
+                            {/* ML Badge */}
+                            <div style={{
+                              position: 'absolute',
+                              top: '10px',
+                              left: '10px',
+                              backgroundColor: '#4CAF50',
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              zIndex: 2,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}>
+                              {item.score ? `${Math.round(item.score * 100)}% Match` : 'Recommended'}
+                            </div>
+                            
+                            <div className="package-image">
+                              <img
+                                src={getPackageImageUrl(pkg)}
+                                alt={pkg.title || 'Package'}
+                                onError={handlePackageImageError}
+                                loading="lazy"
+                              />
+                            </div>
+                            
+                            <div className="tutor-info">
+                              <h3 className="tutor-name">{pkg.title}</h3>
+                              <p className="tutor-subject">{pkg.subject || 'General'}</p>
+                              
+                              {pkg.educator && (
+                                <div className="educator-info" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                  <FaUserCircle style={{ color: '#666' }} />
+                                  <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                                    {pkg.educator.fullName || pkg.educator.username}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {pkg.averageRating > 0 && (
+                                <div className="rating" style={{ marginTop: '0.5rem' }}>
+                                  {renderStars(pkg.averageRating)}
+                                  <span style={{ fontSize: '0.85rem', color: '#666', marginLeft: '0.5rem' }}>
+                                    ({pkg.totalReviews || 0})
+                                  </span>
+                                </div>
+                              )}
+                              
+                              <div className="tutor-details" style={{ marginTop: '0.75rem' }}>
+                                <div className="price" style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1a1a1a' }}>
+                                  {formatPackagePrice(pkg)}
+                                </div>
+                              </div>
+                              
+                              <button
+                                className="view-profile-btn"
+                                onClick={() => navigate(`/package/${pkg._id}`)}
+                                style={{ marginTop: '1rem', width: '100%' }}
+                              >
+                                View Package
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <hr style={{ border: 'none', borderTop: '1px solid #e0e0e0', margin: '2rem 0' }} />
+                  </div>
+                )}
+                
                 <div className="section-header">
                   <div className="results-info">
                     Showing {indexOfFirstPackage + 1}-{Math.min(indexOfLastPackage, filteredPackages.length)} of {filteredPackages.length} results
@@ -651,57 +1253,106 @@ function StudentDashboard() {
                     <div className="tutors-grid">
                       {currentPackages.map(pkg => (
                         <div className="tutor-card" key={pkg._id}>
-                          <div className="tutor-image">
-                            {pkg.thumbnail ? (
-                              <img src={pkg.thumbnail} alt={pkg.title} className="package-thumbnail" />
-                            ) : (
-                              <div className="placeholder-thumbnail">
-                                <FaBook size={40} />
-                              </div>
-                            )}
-                            <div className="image-overlay-content">
-                              <h4 className="course-title-overlay">{pkg.title}</h4>
-                              <p className="course-description-overlay">{pkg.description}</p>
+                          <div className="package-image">
+                            <img
+                              src={getPackageImageUrl(pkg)}
+                              alt={pkg.title || 'Package'}
+                              onError={handlePackageImageError}
+                              loading="lazy"
+                            />
+                            {/* User avatars - top right: show purchaser avatars and a +N badge */}
+                            <div className="user-avatars">
+                              {
+                                // Determine purchasers list from possible package properties
+                                (() => {
+                                  const purchasers = pkg.purchasers || pkg.purchasersList || pkg.enrolledUsers || pkg.students || [];
+                                  const total = (pkg.enrolledCount ?? pkg.purchasersCount ?? purchasers.length) || 0;
+                                  const maxVisible = 2;
+                                  const visible = Array.isArray(purchasers) && purchasers.length ? purchasers.slice(0, maxVisible) : [];
+
+                                  // If no purchaser objects are available, fall back to showing educator avatar placeholders
+                                  if (visible.length === 0 && total > 0) {
+                                    return (
+                                      <>
+                                        <img src={getProfilePictureUrl(pkg.educatorId)} alt="User" className="avatar-item" onError={handleAvatarImageError} />
+                                        <img src={getProfilePictureUrl(pkg.educatorId)} alt="User" className="avatar-item" onError={handleAvatarImageError} />
+                                        {total > 2 && <div className="avatar-count">+{total - 2}</div>}
+                                      </>
+                                    );
+                                  }
+
+                                  return (
+                                    <>
+                                      {visible.map((p, i) => (
+                                        <img
+                                          key={i}
+                                          src={getProfilePictureUrl(p)}
+                                          alt={p?.username || 'User'}
+                                          className="avatar-item"
+                                          onError={handleAvatarImageError}
+                                        />
+                                      ))}
+                                      {total > maxVisible && (
+                                        <div className="avatar-count">+{total - maxVisible}</div>
+                                      )}
+                                    </>
+                                  );
+                                })()
+                              }
                             </div>
-                            <div className="language-tags">
-                              {pkg.languages && pkg.languages.map((lang, index) => (
-                                <span key={index} className="lang-tag">{lang}</span>
-                              ))}
+                            {/* Language badges - bottom right */}
+                            <div className="language-badges">
+                              {pkg.languages && pkg.languages.length > 0 ? (
+                                pkg.languages.slice(0, 2).map((lang, index) => {
+                                  const displayLang = (lang === 'Sinhala') ? 'සිංහල' : (lang === 'English' ? 'English' : lang);
+                                  return <span key={index} className="language-badge">{displayLang}</span>;
+                                })
+                              ) : (
+                                <>
+                                  <span className="language-badge">English</span>
+                                  <span className="language-badge">සිංහල</span>
+                                </>
+                              )}
                             </div>
                           </div>
-                          <div className="tutor-details">
-                            <div className="tutor-header">
-                              <h3 className="tutor-name">{pkg.title}</h3>
-                              <div className="tutor-price">Rs.{pkg.rate} hr</div>
+                          <div className="package-content">
+                            {/* Title and Price on same line */}
+                            <div className="package-header">
+                              <h4 className="package-title">{pkg.title || 'Untitled Package'}</h4>
+                              <span className="package-price">{formatPackagePrice(pkg)}</span>
                             </div>
-                            <div className="tutor-footer">
-                              <div className="instructor-info">
-                                <div className="instructor-avatar">
-                                  {pkg.educatorId?.img ? (
-                                    <img src={pkg.educatorId.img} alt={pkg.educatorId?.username || 'Instructor'} />
-                                  ) : (
-                                    <div className="instructor-avatar-placeholder">
-                                      <FaUser size={16} />
+                            <p className="package-description">
+                              {pkg.description || pkg.desc || 'No description available'}
+                            </p>
+                            
+                            <div className="package-footer">
+                              <div className="instructor-section">
+                                <img 
+                                  src={getProfilePictureUrl(pkg.educatorId)}
+                                  alt={pkg.educatorId?.fullName || pkg.educatorId?.name || pkg.educatorId?.username || 'Tutor'}
+                                  className="tutor-avatar"
+                                  onError={handleAvatarImageError}
+                                  loading="lazy"
+                                />
+                                <div className="tutor-info">
+                                  <span className="tutor-name">
+                                    {pkg.educatorId?.fullName || pkg.educatorId?.name || pkg.educatorId?.username || 'Instructor'}
+                                  </span>
+                                  <div className="rating-info">
+                                    <div className="stars">
+                                      {renderStars(pkg.rating || 4.8)}
                                     </div>
-                                  )}
-                                </div>
-                                <div className="instructor-details">
-                                  <p className="instructor-name">{pkg.educatorId?.username || 'Instructor'}</p>
-                                  <div className="rating-section">
-                                    <RatingStars 
-                                      rating={pkg.rating || 0} 
-                                      totalReviews={pkg.totalReviews || 0}
-                                      showCount={true}
-                                      size="small"
-                                      variant="compact"
-                                    />
+                                    <span className="rating-value">
+                                      {pkg.rating ? pkg.rating.toFixed(1) : '4.8'}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
                               <Link 
                                 to={`/package/${pkg._id}`} 
                                 className="view-btn"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   console.log('View button clicked for package:', pkg);
                                   console.log('Package ID:', pkg._id);
                                   console.log('Package data:', pkg);
@@ -845,6 +1496,66 @@ function StudentDashboard() {
       </div>
 
       {/* Subject Preferences Modal */}
+      {/* Chat Modal */}
+      {showChatModal && selectedEducatorForMessage && (
+        <div className="chat-modal-overlay" onClick={closeChatModal}>
+          <div className="chat-modal" onClick={e => e.stopPropagation()}>
+            <div className="chat-header">
+              <div className="chat-user-info">
+                <div className="user-avatar">
+                  <img 
+                    src={getProfilePictureUrl(selectedEducatorForMessage)}
+                    alt={selectedEducatorForMessage.fullName || selectedEducatorForMessage.name || selectedEducatorForMessage.username || 'Educator'}
+                    onError={handleAvatarImageError}
+                  />
+                </div>
+                <div className="user-details">
+                  <h4>{selectedEducatorForMessage.fullName || selectedEducatorForMessage.name || selectedEducatorForMessage.username || 'Educator'}</h4>
+                  <p>Instructor</p>
+                  <div className="user-status">
+                    <span className="status-dot online"></span>
+                    <span className="status-text">Online</span>
+                  </div>
+                </div>
+              </div>
+              <button className="close-chat-btn" onClick={closeChatModal}>
+                ×
+              </button>
+            </div>
+            
+            <div className="chat-messages">
+                <div className="no-messages">
+                <FaComments />
+                <p>Start a conversation with {selectedEducatorForMessage.fullName || selectedEducatorForMessage.name || selectedEducatorForMessage.username || 'Educator'}</p>
+                <p className="message-hint">Ask questions about courses, availability, or teaching style.</p>
+              </div>
+            </div>
+            
+            <div className="chat-input">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                onKeyPress={handleMessageKeyPress}
+                placeholder="Type your message..."
+                rows="1"
+                disabled={isSending}
+              />
+              <button 
+                className="send-btn"
+                onClick={handleSendMessage}
+                disabled={!messageText.trim() || isSending}
+              >
+                {isSending ? (
+                  <LoadingSpinner size="small" />
+                ) : (
+                  <FaPaperPlane />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <SubjectPreferencesModal
         isOpen={showPreferencesModal}
         onClose={() => setShowPreferencesModal(false)}

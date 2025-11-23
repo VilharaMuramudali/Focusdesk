@@ -28,6 +28,7 @@ export const getEducatorProfile = async (req, res, next) => {
       profile = await EducatorProfile.create({
         userId,
         name: user.username,
+        fullName: user.fullName || user.name || user.username,
         bio: user.bio || '',
         timeSlots: []
       });
@@ -78,6 +79,8 @@ export const updateEducatorProfile = async (req, res, next) => {
       profile = await EducatorProfile.create({
         userId,
         name: name || user.username,
+        // Prefer explicit fullName from request, otherwise use name or username
+        fullName: req.body.fullName || name || user.username,
         bio: bio || user.bio || '',
         qualifications,
         available,
@@ -90,6 +93,7 @@ export const updateEducatorProfile = async (req, res, next) => {
     } else {
       // Update existing profile
       profile.name = name || profile.name;
+      profile.fullName = req.body.fullName || profile.fullName || profile.name;
       profile.bio = bio || profile.bio;
       profile.qualifications = qualifications || profile.qualifications;
       profile.available = available || profile.available;

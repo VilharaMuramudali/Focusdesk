@@ -71,14 +71,24 @@ function MyBookings() {
   };
 
   const handleReviewSession = (session, booking, sessionIndex) => {
-    setSelectedSessionForReview({
+    // Validate that we have all required data before opening modal
+    if (!booking._id || !booking.educatorId || !booking.packageId) {
+      console.error('Missing booking data:', { booking });
+      showErrorNotification('Unable to open review form. Missing booking information.');
+      return;
+    }
+
+    const sessionData = {
       ...session,
       _id: `${booking._id}_session_${sessionIndex}`, // Create unique session ID
       educator: booking.educatorId,
       package: booking.packageId,
       bookingId: booking._id,
       sessionIndex: sessionIndex
-    });
+    };
+
+    console.log('Opening review modal with data:', sessionData);
+    setSelectedSessionForReview(sessionData);
     setShowReviewModal(true);
   };
 
@@ -140,7 +150,7 @@ function MyBookings() {
           <div className="no-bookings-content">
             <FaCalendarAlt className="no-bookings-icon" />
             <h3>No bookings yet</h3>
-            <p>You haven't made any bookings yet. Start by exploring available packages!</p>
+            <p>You haven`t made any bookings yet. Start by exploring available packages!</p>
           </div>
         </div>
       ) : (
@@ -151,12 +161,12 @@ function MyBookings() {
                 <div className="educator-info">
                   <img 
                     src={booking.educatorId?.img || '/img/noavatar.jpg'} 
-                    alt={booking.educatorId?.username}
+                    alt={booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || 'Educator'}
                     className="educator-avatar"
                   />
                   <div>
                     <h4>{booking.packageId?.title}</h4>
-                    <p>with {booking.educatorId?.username}</p>
+                    <p>with {booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username}</p>
                   </div>
                 </div>
                 <div className={`status-badge ${booking.status}`}>
@@ -236,8 +246,8 @@ function MyBookings() {
               <div className="detail-row">
                 <strong>Package:</strong> {selectedBooking.packageId?.title}
               </div>
-              <div className="detail-row">
-                <strong>Educator:</strong> {selectedBooking.educatorId?.username}
+                <div className="detail-row">
+                <strong>Educator:</strong> {selectedBooking.educatorId?.fullName || selectedBooking.educatorId?.name || selectedBooking.educatorId?.username}
               </div>
               <div className="detail-row">
                 <strong>Status:</strong> 
@@ -276,7 +286,7 @@ function MyBookings() {
       )}
 
       {/* Review Modal */}
-      {showReviewModal && selectedSessionForReview && (
+      {showReviewModal && selectedSessionForReview && selectedSessionForReview.educator && selectedSessionForReview.package && (
         <ReviewModal
           isOpen={showReviewModal}
           onClose={() => {

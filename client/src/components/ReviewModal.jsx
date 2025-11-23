@@ -74,6 +74,17 @@ const ReviewModal = ({ isOpen, onClose, educator, packageData, sessionData, onSu
       return;
     }
 
+    // Validate that we have all required data
+    if (!sessionData) {
+      setErrors({ submit: 'Session data is missing. Please try again.' });
+      return;
+    }
+
+    if (!educator || !packageData) {
+      setErrors({ submit: 'Required information is missing. Please try again.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const reviewData = {
@@ -143,6 +154,12 @@ const ReviewModal = ({ isOpen, onClose, educator, packageData, sessionData, onSu
   };
 
   if (!isOpen) return null;
+
+  // Don't render if required data is missing
+  if (!educator || !packageData || !sessionData) {
+    console.error('ReviewModal: Missing required data', { educator, packageData, sessionData });
+    return null;
+  }
 
   return (
     <div className="review-modal-overlay" onClick={handleClose}>

@@ -220,7 +220,7 @@ export default function MySessions() {
 
     const educatorData = {
       id: booking.educatorId._id,
-      name: booking.educatorId.username || 'Educator',
+      name: booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || 'Educator',
       packageTitle: booking.packageId?.title || 'Session',
       bookingId: booking._id
     };
@@ -238,6 +238,7 @@ export default function MySessions() {
       const conversation = await createNewConversation(
         selectedEducator.id,
         selectedEducator.name,
+        'educator', // receiverType
         selectedEducator.bookingId
       );
 
@@ -400,11 +401,11 @@ export default function MySessions() {
                             <div className="instructor-avatar">
                               <img 
                                 src={booking.educatorId?.img || '/img/noavatar.jpg'} 
-                                alt={booking.educatorId?.username}
+                                alt={booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || 'Educator'}
                               />
                             </div>
                             <div className="instructor-name">
-                              {booking.educatorId?.username || "Educator"}
+                              {booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || "Educator"}
                             </div>
                           </div>
                           <div className="divider"></div>
@@ -416,9 +417,6 @@ export default function MySessions() {
                     </div>
                     
                     <div className="session-actions">
-                      <div className="message-icon" onClick={() => openChat(booking)}>
-                        <FaComments />
-                      </div>
                       <button className="chat-btn" onClick={() => openChat(booking)}>
                         <FaComments />
                       </button>
@@ -471,11 +469,11 @@ export default function MySessions() {
                               <div className="instructor-avatar">
                                 <img 
                                   src={booking.educatorId?.img || '/img/noavatar.jpg'} 
-                                  alt={booking.educatorId?.username}
+                                  alt={booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || 'Educator'}
                                 />
                               </div>
                               <div className="instructor-name">
-                                {booking.educatorId?.username || "Educator"}
+                                {booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || "Educator"}
                               </div>
                             </div>
                             <div className="divider"></div>
@@ -491,9 +489,6 @@ export default function MySessions() {
                       </div>
                       
                       <div className="session-actions">
-                        <div className="message-icon" onClick={() => openChat(booking)}>
-                          <FaComments />
-                        </div>
                         <button className="chat-btn" onClick={() => openChat(booking)}>
                           <FaComments />
                         </button>
@@ -564,7 +559,7 @@ export default function MySessions() {
                               <FaUser />
                             </div>
                             <div className="instructor-name">
-                              {booking.educatorId?.username || "Dr. Nimesh Ekanayaka"}
+                              {booking.educatorId?.fullName || booking.educatorId?.name || booking.educatorId?.username || "Educator"}
                             </div>
                           </div>
                           <div className="divider"></div>
@@ -624,7 +619,7 @@ export default function MySessions() {
                   <strong>Package:</strong> {selectedBooking.packageId?.title}
                 </div>
                 <div className="detail-row">
-                  <strong>Tutor:</strong> {selectedBooking.educatorId?.username}
+                  <strong>Tutor:</strong> {selectedBooking.educatorId?.fullName || selectedBooking.educatorId?.name || selectedBooking.educatorId?.username}
                 </div>
                 <div className="detail-row">
                   <strong>Total Amount:</strong> Rs.{selectedBooking.totalAmount}

@@ -11,9 +11,16 @@ import {
   FaFilter,
   FaSearch,
   FaEye,
-  FaPrint
+  FaPrint,
+  FaWallet,
+  FaCreditCard,
+  FaUniversity,
+  FaPaypal,
+  FaExclamationCircle,
+  FaInfoCircle
 } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
+import { CurrencyContext } from "../../../context/CurrencyContext.jsx";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import "./PaymentsSection.scss";
 
@@ -26,9 +33,31 @@ export default function PaymentsSection() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  
+  // Withdrawal states
+  const [withdrawalInfo, setWithdrawalInfo] = useState(null);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    amount: '',
+    currency: 'LKR',
+    paymentMethod: 'bank_transfer',
+    bankDetails: {
+      accountHolderName: '',
+      accountNumber: '',
+      bankName: '',
+      branchName: '',
+      swiftCode: '',
+      iban: ''
+    },
+    paypalEmail: '',
+    notes: ''
+  });
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false);
+  const [withdrawalError, setWithdrawalError] = useState(null);
 
   useEffect(() => {
     fetchTransactions();
+    fetchWithdrawalInfo();
   }, []);
 
   const fetchTransactions = async () => {
@@ -203,13 +232,6 @@ export default function PaymentsSection() {
     });
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD"
-    }).format(amount);
-  };
-
   const filteredTransactions = transactions?.recentTransactions?.filter(transaction => {
     const studentName = transaction.studentId?.username?.toLowerCase() || "";
     const packageTitle = transaction.packageId?.title?.toLowerCase() || "";
@@ -228,6 +250,139 @@ export default function PaymentsSection() {
   const closeTransactionModal = () => {
     setShowTransactionModal(false);
     setSelectedTransaction(null);
+  };
+
+  // Withdrawal functions
+  const fetchWithdrawalInfo = async () => {
+    try {
+      const response = await newRequest.get("/withdrawals/info");
+      if (response.data.success) {
+        setWithdrawalInfo(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching withdrawal info:", error);
+      // Set mock data for demonstration
+      setWithdrawalInfo({
+        availableBalance: 2520.00,
+        totalEarnings: 2840.00,
+        totalWithdrawn: 320.00,
+        pendingWithdrawals: 0,
+        minimumWithdrawal: 50,
+        withdrawals: [],
+        canWithdraw: true
+      });
+    }
+  };
+
+  const handleWithdrawalInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name.startsWith('bankDetails.')) {
+      const field = name.split('.')[1];
+      setWithdrawalForm(prev => ({
+        ...prev,
+        bankDetails: {
+          ...prev.bankDetails,
+          [field]: value
+        }
+      }));
+    } else {
+      setWithdrawalForm(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleWithdrawalSubmit = async (e) => {
+    e.preventDefault();
+    setWithdrawalLoading(true);
+    setWithdrawalError(null);
+
+    try {
+      const response = await newRequest.post("/withdrawals/request", withdrawalForm);
+      
+      if (response.data.success) {
+        // Refresh withdrawal info
+        await fetchWithdrawalInfo();
+        setShowWithdrawalModal(false);
+        setWithdrawalForm({
+          amount: '',
+          currency: 'LKR',
+          paymentMethod: 'bank_transfer',
+          bankDetails: {
+            accountHolderName: '',
+            accountNumber: '',
+            bankName: '',
+            branchName: '',
+            swiftCode: '',
+            iban: ''
+          },
+          paypalEmail: '',
+          notes: ''
+        });
+        alert("Withdrawal request submitted successfully!");
+      }
+    } catch (error) {
+      console.error("Error submitting withdrawal:", error);
+      setWithdrawalError(error.response?.data?.message || "Failed to submit withdrawal request");
+    } finally {
+      setWithdrawalLoading(false);
+    }
+  };
+
+  const handleCancelWithdrawal = async (withdrawalId) => {
+    if (!window.confirm("Are you sure you want to cancel this withdrawal request?")) {
+      return;
+    }
+
+    try {
+      const response = await newRequest.put(`/withdrawals/${withdrawalId}/cancel`);
+      if (response.data.success) {
+        await fetchWithdrawalInfo();
+        alert("Withdrawal request cancelled successfully");
+      }
+    } catch (error) {
+      console.error("Error cancelling withdrawal:", error);
+      alert(error.response?.data?.message || "Failed to cancel withdrawal");
+    }
+  };
+
+  const { convertCurrency, getCurrencySymbol } = React.useContext(CurrencyContext);
+
+  // Force educator payments to display in LKR
+  const DISPLAY_CURRENCY = 'LKR';
+
+  const localeForCurrency = (code) => {
+    switch (code) {
+      case 'LKR': return 'en-LK';
+      case 'INR': return 'en-IN';
+      case 'EUR': return 'de-DE';
+      case 'GBP': return 'en-GB';
+      default: return 'en-US';
+    }
+  };
+
+  const formatCurrency = (amount, fromCurrency = 'USD') => {
+    const base = amount || 0;
+    let converted = base;
+    try {
+      converted = convertCurrency(base, fromCurrency, DISPLAY_CURRENCY);
+    } catch (err) {
+      converted = base;
+    }
+
+    const locale = localeForCurrency(DISPLAY_CURRENCY);
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: DISPLAY_CURRENCY,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(converted);
+    } catch (err) {
+      const symbol = getCurrencySymbol(DISPLAY_CURRENCY) || DISPLAY_CURRENCY;
+      return `${symbol}${converted.toFixed(2)}`;
+    }
   };
 
   if (loading) {
@@ -264,12 +419,58 @@ export default function PaymentsSection() {
           <p>Track your earnings and manage your financial data</p>
         </div>
         <div className="header-actions">
+          <button 
+            className="withdraw-btn"
+            onClick={() => setShowWithdrawalModal(true)}
+            disabled={!withdrawalInfo?.canWithdraw}
+          >
+            <FaWallet />
+            Request Withdrawal
+          </button>
           <button className="export-btn">
             <FaDownload />
             Export Data
           </button>
         </div>
       </div>
+
+      {/* Withdrawal Balance Card */}
+      {withdrawalInfo && (
+        <div className="withdrawal-balance-card">
+          <div className="balance-content">
+            <div className="balance-info">
+              <div className="balance-label">
+                <FaWallet className="balance-icon" />
+                <span>Available Balance</span>
+              </div>
+              <div className="balance-amount">
+                {formatCurrency(withdrawalInfo.availableBalance, withdrawalForm.currency)}
+              </div>
+              <div className="balance-details">
+                <span className="detail-item">
+                  Total Earnings: {formatCurrency(withdrawalInfo.totalEarnings, withdrawalForm.currency)}
+                </span>
+                <span className="detail-item">
+                  Total Withdrawn: {formatCurrency(withdrawalInfo.totalWithdrawn, withdrawalForm.currency)}
+                </span>
+                {withdrawalInfo.pendingWithdrawals > 0 && (
+                  <span className="detail-item pending">
+                    Pending: {formatCurrency(withdrawalInfo.pendingWithdrawals, withdrawalForm.currency)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="balance-actions">
+              {!withdrawalInfo.canWithdraw && (
+                <div className="withdrawal-warning">
+                  <FaExclamationCircle />
+                  <span>Minimum withdrawal: {formatCurrency(withdrawalInfo.minimumWithdrawal, withdrawalForm.currency)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics Cards */}
       <div className="stats-grid">
@@ -279,7 +480,7 @@ export default function PaymentsSection() {
           </div>
           <div className="stat-content">
             <h3>Total Earnings</h3>
-            <p className="stat-amount">{formatCurrency(transactions.stats.totalEarnings)}</p>
+            <p className="stat-amount">{formatCurrency(transactions.stats.totalEarnings, 'USD')}</p>
             <span className="stat-change positive">+12.5% from last month</span>
           </div>
         </div>
@@ -290,7 +491,7 @@ export default function PaymentsSection() {
           </div>
           <div className="stat-content">
             <h3>Pending Earnings</h3>
-            <p className="stat-amount">{formatCurrency(transactions.stats.pendingEarnings)}</p>
+            <p className="stat-amount">{formatCurrency(transactions.stats.pendingEarnings, 'USD')}</p>
             <span className="stat-change">{transactions.stats.pendingBookings} pending bookings</span>
           </div>
         </div>
@@ -312,7 +513,7 @@ export default function PaymentsSection() {
           </div>
           <div className="stat-content">
             <h3>Average Booking</h3>
-            <p className="stat-amount">{formatCurrency(transactions.stats.averageBookingValue)}</p>
+            <p className="stat-amount">{formatCurrency(transactions.stats.averageBookingValue, 'USD')}</p>
             <span className="stat-change">per session</span>
           </div>
         </div>
@@ -401,8 +602,8 @@ export default function PaymentsSection() {
                  </div>
                 
                                  <div className="table-cell amount">
-                   <span className="amount-value">{formatCurrency(transaction.totalAmount || 0)}</span>
-                   <span className="amount-rate">@{formatCurrency(transaction.packageId?.rate || 0)}/hr</span>
+                   <span className="amount-value">{formatCurrency(transaction.totalAmount || 0, 'USD')}</span>
+                   <span className="amount-rate">@{formatCurrency(transaction.packageId?.rate || 0, 'USD')}/hr</span>
                  </div>
                 
                 <div className="table-cell status">
@@ -479,7 +680,7 @@ export default function PaymentsSection() {
                    </div>
                    <div className="detail-row">
                      <span className="detail-label">Rate:</span>
-                     <span className="detail-value">{formatCurrency(selectedTransaction.packageId?.rate || 0)}/hr</span>
+                     <span className="detail-value">{formatCurrency(selectedTransaction.packageId?.rate || 0, 'USD')}/hr</span>
                    </div>
                  </div>
 
@@ -487,7 +688,7 @@ export default function PaymentsSection() {
                    <h3>Payment Information</h3>
                    <div className="detail-row">
                      <span className="detail-label">Total Amount:</span>
-                     <span className="detail-value amount-highlight">{formatCurrency(selectedTransaction.totalAmount || 0)}</span>
+                     <span className="detail-value amount-highlight">{formatCurrency(selectedTransaction.totalAmount || 0, 'USD')}</span>
                    </div>
                    <div className="detail-row">
                      <span className="detail-label">Payment Status:</span>
@@ -559,6 +760,288 @@ export default function PaymentsSection() {
                 Print Receipt
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal History */}
+      {withdrawalInfo && withdrawalInfo.withdrawals && withdrawalInfo.withdrawals.length > 0 && (
+        <div className="withdrawal-history-section">
+          <div className="section-header">
+            <h2>
+              <FaWallet />
+              Withdrawal History
+            </h2>
+          </div>
+          <div className="withdrawals-table">
+            <div className="table-header">
+              <div className="header-cell">Date</div>
+              <div className="header-cell">Amount</div>
+              <div className="header-cell">Payment Method</div>
+              <div className="header-cell">Status</div>
+              <div className="header-cell">Actions</div>
+            </div>
+            <div className="table-body">
+              {withdrawalInfo.withdrawals.map((withdrawal) => (
+                <div key={withdrawal._id} className="table-row">
+                  <div className="table-cell">
+                    {formatDate(withdrawal.createdAt)}
+                  </div>
+                  <div className="table-cell amount">
+                    {formatCurrency(withdrawal.amount, withdrawal.currency)}
+                  </div>
+                  <div className="table-cell">
+                    {withdrawal.paymentMethod === 'bank_transfer' && <FaUniversity />}
+                    {withdrawal.paymentMethod === 'paypal' && <FaPaypal />}
+                    {withdrawal.paymentMethod === 'stripe' && <FaCreditCard />}
+                    <span>{withdrawal.paymentMethod.replace('_', ' ').toUpperCase()}</span>
+                  </div>
+                  <div className="table-cell">
+                    <div className={`status-badge withdrawal-${withdrawal.status}`}>
+                      {getStatusIcon(withdrawal.status)}
+                      <span>{withdrawal.status}</span>
+                    </div>
+                  </div>
+                  <div className="table-cell actions">
+                    {withdrawal.status === 'pending' && (
+                      <button 
+                        className="action-btn cancel-btn"
+                        onClick={() => handleCancelWithdrawal(withdrawal._id)}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button 
+                      className="action-btn view-btn"
+                      onClick={() => {
+                        setSelectedTransaction({ type: 'withdrawal', data: withdrawal });
+                        setShowTransactionModal(true);
+                      }}
+                    >
+                      <FaEye />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal Request Modal */}
+      {showWithdrawalModal && (
+        <div className="modal-overlay" onClick={() => setShowWithdrawalModal(false)}>
+          <div className="withdrawal-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Request Withdrawal</h2>
+              <button className="close-btn" onClick={() => setShowWithdrawalModal(false)}>
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleWithdrawalSubmit} className="withdrawal-form">
+              {withdrawalError && (
+                <div className="error-message">
+                  <FaExclamationCircle />
+                  {withdrawalError}
+                </div>
+              )}
+
+              {withdrawalInfo && (
+                <div className="balance-display">
+                  <div className="balance-item">
+                    <span>Available Balance:</span>
+                    <strong>{formatCurrency(withdrawalInfo.availableBalance, withdrawalForm.currency)}</strong>
+                  </div>
+                  <div className="balance-item">
+                    <span>Minimum Withdrawal:</span>
+                    <strong>{formatCurrency(withdrawalInfo.minimumWithdrawal, withdrawalForm.currency)}</strong>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="amount">Withdrawal Amount *</label>
+                <div className="amount-input-group">
+                  <select
+                    name="currency"
+                    value={withdrawalForm.currency}
+                    onChange={handleWithdrawalInputChange}
+                    className="currency-select"
+                  >
+                    <option value="LKR">LKR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                  <input
+                    type="number"
+                    id="amount"
+                    name="amount"
+                    value={withdrawalForm.amount}
+                    onChange={handleWithdrawalInputChange}
+                    placeholder="Enter amount"
+                    min={withdrawalInfo?.minimumWithdrawal || 50}
+                    max={withdrawalInfo?.availableBalance || 0}
+                    step="0.01"
+                    required
+                  />
+                </div>
+                {withdrawalInfo && (
+                  <div className="form-hint">
+                    <FaInfoCircle />
+                    <span>Minimum: {formatCurrency(withdrawalInfo.minimumWithdrawal, withdrawalForm.currency)} | 
+                    Maximum: {formatCurrency(withdrawalInfo.availableBalance, withdrawalForm.currency)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="paymentMethod">Payment Method *</label>
+                <select
+                  id="paymentMethod"
+                  name="paymentMethod"
+                  value={withdrawalForm.paymentMethod}
+                  onChange={handleWithdrawalInputChange}
+                  required
+                >
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="paypal">PayPal</option>
+                  <option value="stripe">Stripe</option>
+                </select>
+              </div>
+
+              {withdrawalForm.paymentMethod === 'bank_transfer' && (
+                <div className="bank-details-section">
+                  <h3>Bank Account Details</h3>
+                  <div className="form-group">
+                    <label htmlFor="accountHolderName">Account Holder Name *</label>
+                    <input
+                      type="text"
+                      id="accountHolderName"
+                      name="bankDetails.accountHolderName"
+                      value={withdrawalForm.bankDetails.accountHolderName}
+                      onChange={handleWithdrawalInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="accountNumber">Account Number *</label>
+                    <input
+                      type="text"
+                      id="accountNumber"
+                      name="bankDetails.accountNumber"
+                      value={withdrawalForm.bankDetails.accountNumber}
+                      onChange={handleWithdrawalInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="bankName">Bank Name *</label>
+                    <input
+                      type="text"
+                      id="bankName"
+                      name="bankDetails.bankName"
+                      value={withdrawalForm.bankDetails.bankName}
+                      onChange={handleWithdrawalInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="branchName">Branch Name</label>
+                    <input
+                      type="text"
+                      id="branchName"
+                      name="bankDetails.branchName"
+                      value={withdrawalForm.bankDetails.branchName}
+                      onChange={handleWithdrawalInputChange}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="swiftCode">SWIFT Code</label>
+                      <input
+                        type="text"
+                        id="swiftCode"
+                        name="bankDetails.swiftCode"
+                        value={withdrawalForm.bankDetails.swiftCode}
+                        onChange={handleWithdrawalInputChange}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="iban">IBAN</label>
+                      <input
+                        type="text"
+                        id="iban"
+                        name="bankDetails.iban"
+                        value={withdrawalForm.bankDetails.iban}
+                        onChange={handleWithdrawalInputChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {withdrawalForm.paymentMethod === 'paypal' && (
+                <div className="form-group">
+                  <label htmlFor="paypalEmail">PayPal Email *</label>
+                  <input
+                    type="email"
+                    id="paypalEmail"
+                    name="paypalEmail"
+                    value={withdrawalForm.paypalEmail}
+                    onChange={handleWithdrawalInputChange}
+                    placeholder="your.email@example.com"
+                    required
+                  />
+                </div>
+              )}
+
+              {withdrawalForm.paymentMethod === 'stripe' && (
+                <div className="form-group">
+                  <label htmlFor="stripeAccountId">Stripe Account ID *</label>
+                  <input
+                    type="text"
+                    id="stripeAccountId"
+                    name="stripeAccountId"
+                    value={withdrawalForm.stripeAccountId}
+                    onChange={handleWithdrawalInputChange}
+                    placeholder="acct_xxxxx"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="notes">Notes (Optional)</label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  value={withdrawalForm.notes}
+                  onChange={handleWithdrawalInputChange}
+                  rows="3"
+                  placeholder="Any additional information..."
+                />
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={() => setShowWithdrawalModal(false)}
+                  disabled={withdrawalLoading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={withdrawalLoading || !withdrawalInfo?.canWithdraw}
+                >
+                  {withdrawalLoading ? "Submitting..." : "Submit Request"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

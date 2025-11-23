@@ -13,6 +13,11 @@ const educatorProfileSchema = new Schema({
     type: String,
     required: true
   },
+  // fullName stores the educator's complete display name (first + last name, etc.)
+  fullName: {
+    type: String,
+    required: false
+  },
   bio: {
     type: String,
     required: false

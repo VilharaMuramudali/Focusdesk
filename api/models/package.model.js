@@ -24,6 +24,12 @@ const packageSchema = new Schema({
     type: [String],
     default: []
   },
+  currency: {
+    type: String,
+    required: false,
+    default: "LKR",
+    uppercase: true
+  },
   rate: {
     type: Number,
     required: true,
@@ -42,6 +48,10 @@ const packageSchema = new Schema({
     default: 1
   },
   languages: {
+    type: [String],
+    default: []
+  },
+  subjects: {
     type: [String],
     default: []
   }

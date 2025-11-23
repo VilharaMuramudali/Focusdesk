@@ -1,4 +1,5 @@
 // controllers/conversation.controller.js
+import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
@@ -63,8 +64,15 @@ export const createConversation = async (req, res, next) => {
     const { receiverId, receiverName, receiverType, bookingId } = req.body;
     const senderId = req.userId;
 
+    console.log('Creating conversation:', { senderId, receiverId, receiverName, receiverType, bookingId });
+
     if (!receiverId) {
       return next(createError(400, "Receiver ID is required"));
+    }
+
+    // Validate receiverId format
+    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+      return next(createError(400, "Invalid receiver ID format"));
     }
 
     // Get sender info
@@ -79,6 +87,11 @@ export const createConversation = async (req, res, next) => {
       return next(createError(404, "Receiver not found"));
     }
 
+    // Prevent users from messaging themselves
+    if (senderId.toString() === receiverId.toString()) {
+      return next(createError(400, "Cannot create conversation with yourself"));
+    }
+
     const senderType = sender.isEducator ? 'educator' : 'student';
     const actualReceiverType = receiver.isEducator ? 'educator' : 'student';
 
@@ -90,8 +103,10 @@ export const createConversation = async (req, res, next) => {
       receiverId,
       receiverName || receiver.username,
       receiverType || actualReceiverType,
-      bookingId
+      bookingId || null
     );
+
+    console.log('Conversation created/found:', conversation._id);
 
     // Format response for frontend
     const formattedConversation = {
@@ -100,15 +115,18 @@ export const createConversation = async (req, res, next) => {
       participantName: receiverName || receiver.username,
       participantType: receiverType || actualReceiverType,
       lastMessage: conversation.lastMessage,
-      unreadCount: 0,
+      unreadCount: conversation.getUnreadCount(senderId),
       bookingId: conversation.bookingId,
       isActive: conversation.isActive,
       updatedAt: conversation.lastActivity || conversation.updatedAt,
-      createdAt: conversation.createdAt
+      createdAt: conversation.createdAt,
+      participants: conversation.participants
     };
 
-    res.status(201).json(formattedConversation);
+    // Always return 200 for success (whether new or existing conversation)
+    res.status(200).json(formattedConversation);
   } catch (err) {
+    console.error('Error in createConversation:', err);
     next(err);
   }
 };

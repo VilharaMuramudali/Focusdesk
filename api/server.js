@@ -13,21 +13,21 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import imageRoutes from "./routes/image.routes.js";
 import activityRoute from "./routes/activity.routes.js";
-import recommendationRoute from "./routes/recommendation.routes.js";
 import messageRoute from "./routes/message.route.js";
 import conversationRoute from "./routes/conversation.routes.js";
 import chatUploadRoute from "./routes/chatUpload.routes.js";
 import reviewRoute from "./routes/review.route.js";
 import learningRoute from "./routes/learning.routes.js";
+import recommendRoute from "./routes/recommend.routes.js";
+import withdrawalRoute from "./routes/withdrawal.routes.js";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { verifyToken } from "./middleware/jwt.js";
-import mlServiceManager from "./services/ml/mlServiceManager.js";
+import startPayoutsJob from './jobs/payoutsJob.js';
 const app = express();
 dotenv.config();
 mongoose.set("strictQuery", true);
 
-app.use("/api/recommendations", recommendationRoute);
 // Create HTTP server and Socket.io server
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
@@ -38,6 +38,8 @@ const io = new SocketIOServer(httpServer, {
   }
 });
 
+// Make io available to Express routes/controllers via app
+app.set('io', io);
 // Chat rooms management
 const chatRooms = new Map(); // conversationId -> Set of socket IDs
 const userInfo = new Map(); // socketId -> user info
@@ -47,8 +49,16 @@ const userSockets = new Map(); // userId -> Set of socket IDs
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
+    console.log('Socket.IO auth attempt:', { 
+      hasToken: !!token, 
+      socketId: socket.id 
+    });
+    
     if (!token) {
-      return next(new Error('Authentication error'));
+      console.warn('Socket.IO connection without token - allowing anyway');
+      // Allow connection but mark as unauthenticated
+      socket.isAuthenticated = false;
+      return next();
     }
 
     // Verify token manually since verifyToken is middleware
@@ -56,9 +66,14 @@ io.use(async (socket, next) => {
     socket.userId = decoded.id;
     socket.userName = decoded.username;
     socket.userType = decoded.isEducator ? 'educator' : 'student';
+    socket.isAuthenticated = true;
+    console.log('Socket.IO authenticated:', { userId: socket.userId, userName: socket.userName });
     next();
   } catch (error) {
-    next(new Error('Authentication error'));
+    console.error('Socket.IO authentication error:', error.message);
+    // Allow connection but mark as unauthenticated
+    socket.isAuthenticated = false;
+    next();
   }
 });
 
@@ -197,6 +212,30 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("chat-message", { userId, message, file, fileName });
   });
 
+  // Whiteboard events
+  socket.on("whiteboard-draw", ({ roomId, drawing }) => {
+    socket.to(roomId).emit("whiteboard-draw", { drawing });
+  });
+
+  socket.on("whiteboard-clear", ({ roomId, userId }) => {
+    socket.to(roomId).emit("whiteboard-clear", { userId });
+  });
+
+  // Recording status
+  socket.on("recording-status", ({ roomId, isRecording, userId }) => {
+    socket.to(roomId).emit("recording-status", { isRecording, userId });
+  });
+
+  // Hand raise
+  socket.on("hand-raise", ({ roomId, userId, raised }) => {
+    socket.to(roomId).emit("hand-raise", { userId, raised });
+  });
+
+  // Reactions
+  socket.on("reaction", ({ roomId, reaction }) => {
+    socket.to(roomId).emit("reaction", { reaction });
+  });
+
   // Handle disconnection
   socket.on("disconnect", () => {
     const userId = socket.userId;
@@ -272,12 +311,13 @@ app.use("/api/packages", packageRoute);
 app.use("/api/bookings", bookingRoute);
 app.use("/api/images", imageRoutes);
 app.use("/api/activities", activityRoute);
-app.use("/api/recommend", recommendationRoute);
 app.use("/api/messages", messageRoute);
 app.use("/api/conversations", conversationRoute);
 app.use("/api/upload", chatUploadRoute);
 app.use("/api/reviews", reviewRoute);
 app.use("/api/learning", learningRoute);
+app.use("/api/recommend", recommendRoute);
+app.use("/api/withdrawals", withdrawalRoute);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -295,53 +335,33 @@ app.use((err, req, res, next) => {
 httpServer.listen(8800, async () => {
   await connect();
   console.log("Backend server (with Socket.io and Chat functionality) is running on port 8800!");
-  
-  // Start ML service automatically
-  try {
-    console.log("\n🤖 Initializing ML Recommendation Service...");
-    
-    // Check if ML service should be enabled (can be disabled via env var)
-    const mlEnabled = process.env.ML_SERVICE_ENABLED !== 'false';
-    
-    if (mlEnabled) {
-      // Start ML service
-      const mlStarted = await mlServiceManager.startService();
-      
-      if (mlStarted) {
-        console.log("✅ ML service started successfully!");
-        
-        // Start automatic training (every 24 hours by default, configurable via env)
-        const trainingIntervalHours = parseInt(process.env.ML_TRAINING_INTERVAL_HOURS || '24');
-        mlServiceManager.startAutomaticTraining(trainingIntervalHours);
-        
-        console.log(`🔄 Automatic model training scheduled every ${trainingIntervalHours} hours`);
-      } else {
-        console.warn("⚠️ ML service could not be started. System will use fallback recommendations.");
-      }
-    } else {
-      console.log("ℹ️ ML service is disabled (ML_SERVICE_ENABLED=false)");
+    // Start payouts background job
+    try {
+      startPayoutsJob();
+    } catch (e) {
+      console.error('Failed to start payouts job:', e);
     }
-  } catch (error) {
-    console.error("❌ Error starting ML service:", error.message);
-    console.warn("⚠️ System will continue with fallback recommendations.");
-  }
   
   // Graceful shutdown handler
   process.on('SIGTERM', async () => {
     console.log('🛑 SIGTERM received, shutting down gracefully...');
-    await mlServiceManager.stopService();
-    httpServer.close(() => {
-      console.log('✅ Server closed');
-      process.exit(0);
+    io.close(() => {
+      console.log('✅ Socket.IO closed');
+      httpServer.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+      });
     });
   });
   
   process.on('SIGINT', async () => {
     console.log('🛑 SIGINT received, shutting down gracefully...');
-    await mlServiceManager.stopService();
-    httpServer.close(() => {
-      console.log('✅ Server closed');
-      process.exit(0);
+    io.close(() => {
+      console.log('✅ Socket.IO closed');
+      httpServer.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+      });
     });
   });
 });

@@ -1,10 +1,10 @@
 import React from "react";
+import ProfileInsights from "./ProfileInsights";
 
 export default function ToolsSection() {
   return (
     <div className="ed-tools">
-      <h3>Tools</h3>
-      <p>Tools and resources will be displayed here.</p>
+      <ProfileInsights />
     </div>
   );
 }

@@ -1,0 +1,331 @@
+user_id,package_id,interaction_type,timestamp,package_title,package_subject,package_price
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-22T03:36:08.337Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,click,2025-10-23T15:36:08.337Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,click,2025-11-15T20:36:08.337Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,view,2025-11-17T18:36:08.337Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-11-21T14:36:08.337Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-10-27T00:36:08.337Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,view,2025-11-09T08:36:08.337Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-11-04T18:36:08.337Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-11-14T19:36:08.337Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-19T01:36:08.337Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-19T21:36:08.337Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,click,2025-10-30T16:36:08.337Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-05T02:36:08.337Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,click,2025-11-03T20:36:08.337Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,click,2025-11-06T03:36:08.337Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,click,2025-11-14T19:36:08.337Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,click,2025-11-21T18:36:08.337Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,click,2025-11-04T13:36:08.337Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,view,2025-11-16T09:36:08.337Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-11-16T11:36:08.337Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,click,2025-11-15T16:36:08.337Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-10-31T14:36:08.337Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-10-23T16:36:08.337Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,click,2025-11-06T06:36:08.337Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,click,2025-11-05T05:36:08.337Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,69202f2be8ab55f147f77a30,click,2025-11-17T16:36:08.337Z,"Number Systems",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-11T21:36:08.337Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-11-03T05:36:08.337Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-15T10:36:08.337Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,view,2025-11-07T18:36:08.337Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-11-21T09:36:08.337Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-10-24T08:36:08.337Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-11-08T04:36:08.337Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,69202f2be8ab55f147f77a30,view,2025-11-03T11:36:08.337Z,"Number Systems",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-17T13:36:08.337Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-11T02:36:08.337Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-11-14T08:36:08.337Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,view,2025-11-18T11:36:08.337Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,click,2025-11-14T22:36:08.337Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,view,2025-11-20T12:36:08.337Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-10-28T13:36:08.337Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-09T18:36:08.337Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,view,2025-10-23T18:36:08.337Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-10-28T11:36:08.337Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-01T17:36:08.337Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202f2be8ab55f147f77a30,click,2025-11-18T13:36:08.337Z,"Number Systems",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,view,2025-11-10T18:36:08.337Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,view,2025-11-22T13:36:08.337Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-16T04:36:08.337Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,click,2025-10-27T01:36:08.337Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-15T06:38:30.559Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-10-31T22:38:30.559Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,click,2025-11-02T14:38:30.559Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,view,2025-11-19T11:38:30.559Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-11-06T11:38:30.559Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,click,2025-10-25T09:38:30.559Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-11-01T06:38:30.559Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-11-19T08:38:30.559Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,view,2025-11-10T09:38:30.559Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,view,2025-10-31T14:38:30.559Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,view,2025-11-13T08:38:30.559Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,click,2025-10-27T19:38:30.559Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,click,2025-11-05T05:38:30.559Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-03T10:38:30.559Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-11-20T17:38:30.559Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,click,2025-11-10T12:38:30.559Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,view,2025-10-25T03:38:30.559Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,view,2025-11-01T14:38:30.559Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-11-07T04:38:30.559Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-10-25T04:38:30.559Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-06T21:38:30.559Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-04T18:38:30.559Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,click,2025-10-25T09:38:30.559Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,click,2025-11-11T12:38:30.559Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,view,2025-11-16T02:38:30.559Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-05T01:38:30.559Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,click,2025-11-11T07:38:30.559Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,click,2025-11-14T19:38:30.559Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,view,2025-11-20T00:38:30.559Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-12T22:38:30.559Z,"French Grammer Basics",General,0
+69185ac3493cf14d270723c8,69202de5e8ab55f147f77a1c,view,2025-10-25T19:38:38.350Z,"AL Python",General,0
+69185ac3493cf14d270723c8,68a586831ac00c84751b7f8d,view,2025-11-18T22:38:38.350Z,"photoshop",General,0
+69185ac3493cf14d270723c8,69202f6be8ab55f147f77a39,view,2025-10-24T13:38:38.350Z,"Advanced Level Programming",General,0
+69185ac3493cf14d270723c8,692025ece8ab55f147f77933,view,2025-10-23T19:38:38.350Z,"VLAN Configurations",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,click,2025-11-06T08:38:38.350Z,"User expereince",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-08T17:38:38.350Z,"User expereince",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,click,2025-11-03T12:38:38.350Z,"User expereince",General,0
+69185ac3493cf14d270723c8,68a586831ac00c84751b7f8d,click,2025-11-13T07:38:38.350Z,"photoshop",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,click,2025-11-15T16:38:38.350Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,view,2025-11-12T13:38:38.350Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,view,2025-11-19T07:38:38.350Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,69202f2be8ab55f147f77a30,view,2025-11-19T15:38:38.350Z,"Number Systems",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,click,2025-10-31T20:38:38.350Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,69202f6be8ab55f147f77a39,view,2025-10-31T21:38:38.350Z,"Advanced Level Programming",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-11-21T01:38:38.350Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-11-05T20:38:38.350Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-10T04:38:38.350Z,"User expereince",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,view,2025-11-13T09:38:38.350Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,69202de5e8ab55f147f77a1c,view,2025-10-30T20:38:38.350Z,"AL Python",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-10-27T16:38:38.350Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,69202648e8ab55f147f7793c,view,2025-11-08T04:38:38.350Z,"IP Addressing",General,0
+69185ac3493cf14d270723c8,69202f2be8ab55f147f77a30,view,2025-11-07T17:38:38.350Z,"Number Systems",General,0
+69185ac3493cf14d270723c8,68a586831ac00c84751b7f8d,view,2025-11-22T11:38:38.350Z,"photoshop",General,0
+69185ac3493cf14d270723c8,69202f6be8ab55f147f77a39,view,2025-11-07T05:38:38.350Z,"Advanced Level Programming",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-10-30T05:38:38.350Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,view,2025-10-26T10:38:38.350Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,68a586831ac00c84751b7f8d,view,2025-11-15T06:38:38.350Z,"photoshop",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,view,2025-11-12T18:38:38.350Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,click,2025-11-15T01:38:38.350Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,68a586831ac00c84751b7f8d,click,2025-11-06T20:38:38.350Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-11-10T09:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,click,2025-10-28T10:41:44.592Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-12T20:41:44.592Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,click,2025-11-06T21:41:44.592Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-11-16T22:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,view,2025-11-06T06:41:44.592Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-10T06:41:44.592Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-11-01T00:41:44.592Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,view,2025-11-18T04:41:44.592Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,click,2025-11-21T19:41:44.592Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-10-31T22:41:44.592Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-14T14:41:44.592Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,click,2025-11-19T15:41:44.592Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,click,2025-10-28T09:41:44.592Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,view,2025-10-29T04:41:44.592Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-10-24T04:41:44.592Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-11-17T23:41:44.592Z,"French Grammer Basics",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,click,2025-11-01T11:41:44.592Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,view,2025-11-01T06:41:44.592Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-10-28T13:41:44.592Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-10-27T23:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,click,2025-10-24T20:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-11-18T02:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-18T22:41:44.592Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,view,2025-10-31T22:41:44.592Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-10-23T21:41:44.592Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,691fedad92cb9e360ec91df9,view,2025-11-05T16:41:44.592Z,"Interaction Design",General,0
+680a9116b88e07cba6d4572b,69202f2be8ab55f147f77a30,view,2025-11-02T06:41:44.592Z,"Number Systems",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,view,2025-11-20T21:41:44.592Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,click,2025-11-09T14:41:44.592Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,click,2025-11-15T16:41:44.592Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,69202de5e8ab55f147f77a1c,view,2025-11-02T08:41:44.592Z,"AL Python",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,view,2025-11-17T08:41:44.592Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,view,2025-10-25T02:41:44.592Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,view,2025-11-09T23:41:44.592Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,68a586261ac00c84751b7f88,view,2025-11-19T03:41:44.592Z,"Graphic Design",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-11-07T20:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,69202f2be8ab55f147f77a30,view,2025-11-12T07:41:44.592Z,"Number Systems",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,view,2025-10-27T07:41:44.592Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,view,2025-11-13T03:41:44.592Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691ffa923c5e64c18a5b3acf,click,2025-10-26T07:41:44.592Z,"French Basics",General,0
+680a9116b88e07cba6d4572b,69202648e8ab55f147f7793c,view,2025-11-13T23:41:44.592Z,"IP Addressing",General,0
+680a9116b88e07cba6d4572b,691ffc663c5e64c18a5b3adc,view,2025-11-04T03:41:44.592Z,"French Speaking Lesson",General,0
+680a9116b88e07cba6d4572b,69202f6be8ab55f147f77a39,click,2025-11-21T09:41:44.592Z,"Advanced Level Programming",General,0
+680a9116b88e07cba6d4572b,68a586831ac00c84751b7f8d,view,2025-11-18T00:41:44.592Z,"photoshop",General,0
+680a9116b88e07cba6d4572b,680348eb74e26f379c5ab593,click,2025-10-28T05:41:44.592Z,"User expereince",General,0
+680a9116b88e07cba6d4572b,692025ece8ab55f147f77933,click,2025-11-20T09:41:44.592Z,"VLAN Configurations",General,0
+680a9116b88e07cba6d4572b,69202f2be8ab55f147f77a30,click,2025-11-02T21:41:44.592Z,"Number Systems",General,0
+680a9116b88e07cba6d4572b,69202593e8ab55f147f7792b,view,2025-11-04T08:41:44.592Z,"Subnet Masking",General,0
+680a9116b88e07cba6d4572b,691ffb553c5e64c18a5b3ad5,view,2025-10-25T20:41:44.592Z,"French Grammer Basics",General,0
+69185ac3493cf14d270723c8,691ffb553c5e64c18a5b3ad5,view,2025-11-10T08:41:51.270Z,"French Grammer Basics",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,click,2025-11-06T16:41:51.270Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,click,2025-11-07T08:41:51.270Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,view,2025-11-06T09:41:51.270Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,click,2025-11-21T23:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,69202de5e8ab55f147f77a1c,view,2025-11-12T20:41:51.270Z,"AL Python",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,click,2025-11-09T10:41:51.270Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-19T04:41:51.270Z,"User expereince",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,view,2025-11-12T22:41:51.270Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-11-12T11:41:51.270Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-11-07T04:41:51.270Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,click,2025-11-06T21:41:51.270Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-22T07:41:51.270Z,"User expereince",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-11-11T01:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-07T17:41:51.270Z,"User expereince",General,0
+69185ac3493cf14d270723c8,691ffb553c5e64c18a5b3ad5,click,2025-11-04T15:41:51.270Z,"French Grammer Basics",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,view,2025-11-07T05:41:51.270Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,69202de5e8ab55f147f77a1c,view,2025-11-14T15:41:51.270Z,"AL Python",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,click,2025-11-16T03:41:51.270Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,69202f6be8ab55f147f77a39,view,2025-11-03T18:41:51.270Z,"Advanced Level Programming",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,view,2025-11-08T13:41:51.270Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,click,2025-10-25T03:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-10-26T00:41:51.270Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,click,2025-10-26T05:41:51.270Z,"User expereince",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-10-29T07:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-10-25T18:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,692025ece8ab55f147f77933,view,2025-11-08T03:41:51.270Z,"VLAN Configurations",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,view,2025-11-19T11:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-11-04T06:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,click,2025-11-11T23:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,692025ece8ab55f147f77933,click,2025-10-24T18:41:51.270Z,"VLAN Configurations",General,0
+69185ac3493cf14d270723c8,691ffc663c5e64c18a5b3adc,click,2025-10-24T15:41:51.270Z,"French Speaking Lesson",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,view,2025-11-03T17:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,view,2025-11-12T14:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-11-03T09:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,view,2025-11-06T15:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,69202f6be8ab55f147f77a39,click,2025-10-24T13:41:51.270Z,"Advanced Level Programming",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-11-15T04:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,691ffa923c5e64c18a5b3acf,click,2025-11-13T23:41:51.270Z,"French Basics",General,0
+69185ac3493cf14d270723c8,69202648e8ab55f147f7793c,view,2025-11-08T04:41:51.270Z,"IP Addressing",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-11-17T09:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,69202f2be8ab55f147f77a30,view,2025-11-05T18:41:51.270Z,"Number Systems",General,0
+69185ac3493cf14d270723c8,692025ece8ab55f147f77933,view,2025-11-09T11:41:51.270Z,"VLAN Configurations",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-21T09:41:51.270Z,"User expereince",General,0
+69185ac3493cf14d270723c8,69202de5e8ab55f147f77a1c,view,2025-11-06T04:41:51.270Z,"AL Python",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,view,2025-10-26T00:41:51.270Z,"Subnet Masking",General,0
+69185ac3493cf14d270723c8,680348eb74e26f379c5ab593,view,2025-11-14T08:41:51.270Z,"User expereince",General,0
+69185ac3493cf14d270723c8,691fedad92cb9e360ec91df9,view,2025-11-01T01:41:51.270Z,"Interaction Design",General,0
+69185ac3493cf14d270723c8,68a586261ac00c84751b7f88,view,2025-11-12T12:41:51.270Z,"Graphic Design",General,0
+69185ac3493cf14d270723c8,69202593e8ab55f147f7792b,click,2025-11-19T22:41:51.270Z,"Subnet Masking",General,0
+user_001,680348eb74e26f379c5ab593,view,2025-11-08T06:41:58.250Z,"User expereince",General,0
+user_001,692025ece8ab55f147f77933,view,2025-11-19T13:41:58.250Z,"VLAN Configurations",General,0
+user_001,680348eb74e26f379c5ab593,view,2025-11-10T13:41:58.250Z,"User expereince",General,0
+user_001,69202de5e8ab55f147f77a1c,click,2025-11-02T20:41:58.250Z,"AL Python",General,0
+user_001,691ffa923c5e64c18a5b3acf,view,2025-11-06T11:41:58.250Z,"French Basics",General,0
+user_001,69202593e8ab55f147f7792b,click,2025-11-08T02:41:58.250Z,"Subnet Masking",General,0
+user_001,69202593e8ab55f147f7792b,click,2025-11-04T19:41:58.250Z,"Subnet Masking",General,0
+user_001,69202f2be8ab55f147f77a30,click,2025-11-21T18:41:58.250Z,"Number Systems",General,0
+user_001,69202f2be8ab55f147f77a30,view,2025-11-15T12:41:58.250Z,"Number Systems",General,0
+user_001,69202593e8ab55f147f7792b,click,2025-11-22T13:41:58.250Z,"Subnet Masking",General,0
+user_001,691ffb553c5e64c18a5b3ad5,view,2025-10-31T02:41:58.250Z,"French Grammer Basics",General,0
+user_001,69202de5e8ab55f147f77a1c,view,2025-11-20T05:41:58.250Z,"AL Python",General,0
+user_001,68a586831ac00c84751b7f8d,view,2025-11-06T08:41:58.250Z,"photoshop",General,0
+user_001,691ffc663c5e64c18a5b3adc,click,2025-11-17T12:41:58.250Z,"French Speaking Lesson",General,0
+user_001,69202593e8ab55f147f7792b,view,2025-11-13T19:41:58.250Z,"Subnet Masking",General,0
+user_001,69202648e8ab55f147f7793c,view,2025-11-18T13:41:58.250Z,"IP Addressing",General,0
+user_001,69202de5e8ab55f147f77a1c,view,2025-11-11T05:41:58.250Z,"AL Python",General,0
+user_001,68a586831ac00c84751b7f8d,click,2025-11-13T12:41:58.250Z,"photoshop",General,0
+user_001,69202648e8ab55f147f7793c,click,2025-11-05T04:41:58.250Z,"IP Addressing",General,0
+user_001,691ffc663c5e64c18a5b3adc,click,2025-11-18T04:41:58.250Z,"French Speaking Lesson",General,0
+user_001,691fedad92cb9e360ec91df9,view,2025-11-15T14:41:58.250Z,"Interaction Design",General,0
+user_001,692025ece8ab55f147f77933,view,2025-10-28T10:41:58.250Z,"VLAN Configurations",General,0
+user_001,680348eb74e26f379c5ab593,view,2025-11-02T04:41:58.250Z,"User expereince",General,0
+user_001,692025ece8ab55f147f77933,click,2025-11-18T04:41:58.250Z,"VLAN Configurations",General,0
+user_001,68a586831ac00c84751b7f8d,view,2025-11-07T14:41:58.250Z,"photoshop",General,0
+user_001,691ffa923c5e64c18a5b3acf,view,2025-10-31T14:41:58.250Z,"French Basics",General,0
+user_001,69202f2be8ab55f147f77a30,view,2025-10-31T14:41:58.250Z,"Number Systems",General,0
+user_001,68a586261ac00c84751b7f88,view,2025-10-30T00:41:58.250Z,"Graphic Design",General,0
+user_001,68a586831ac00c84751b7f8d,view,2025-11-14T05:41:58.250Z,"photoshop",General,0
+user_001,691fedad92cb9e360ec91df9,view,2025-11-18T08:41:58.250Z,"Interaction Design",General,0
+user_001,680348eb74e26f379c5ab593,view,2025-11-17T00:41:58.250Z,"User expereince",General,0
+user_001,691ffc663c5e64c18a5b3adc,view,2025-10-29T10:41:58.250Z,"French Speaking Lesson",General,0
+user_001,691ffb553c5e64c18a5b3ad5,view,2025-11-08T04:41:58.250Z,"French Grammer Basics",General,0
+user_001,691ffc663c5e64c18a5b3adc,view,2025-11-19T23:41:58.250Z,"French Speaking Lesson",General,0
+user_001,69202648e8ab55f147f7793c,view,2025-11-11T10:41:58.250Z,"IP Addressing",General,0
+user_001,691fedad92cb9e360ec91df9,view,2025-11-02T18:41:58.250Z,"Interaction Design",General,0
+user_001,691ffa923c5e64c18a5b3acf,view,2025-11-16T20:41:58.250Z,"French Basics",General,0
+user_001,68a586261ac00c84751b7f88,click,2025-11-01T16:41:58.250Z,"Graphic Design",General,0
+user_001,691ffb553c5e64c18a5b3ad5,view,2025-10-30T21:41:58.250Z,"French Grammer Basics",General,0
+user_001,69202f6be8ab55f147f77a39,view,2025-11-17T00:41:58.250Z,"Advanced Level Programming",General,0
+user_002,68a586831ac00c84751b7f8d,view,2025-11-03T21:42:05.674Z,"photoshop",General,0
+user_002,69202648e8ab55f147f7793c,view,2025-11-21T16:42:05.674Z,"IP Addressing",General,0
+user_002,69202f2be8ab55f147f77a30,view,2025-11-10T19:42:05.674Z,"Number Systems",General,0
+user_002,69202593e8ab55f147f7792b,click,2025-11-06T01:42:05.674Z,"Subnet Masking",General,0
+user_002,69202f2be8ab55f147f77a30,view,2025-11-12T13:42:05.674Z,"Number Systems",General,0
+user_002,68a586261ac00c84751b7f88,view,2025-11-11T09:42:05.674Z,"Graphic Design",General,0
+user_002,691ffc663c5e64c18a5b3adc,view,2025-10-23T19:42:05.674Z,"French Speaking Lesson",General,0
+user_002,691ffa923c5e64c18a5b3acf,click,2025-10-24T12:42:05.674Z,"French Basics",General,0
+user_002,68a586831ac00c84751b7f8d,click,2025-11-06T00:42:05.674Z,"photoshop",General,0
+user_002,69202f2be8ab55f147f77a30,click,2025-11-02T15:42:05.674Z,"Number Systems",General,0
+user_002,691ffc663c5e64c18a5b3adc,view,2025-11-07T17:42:05.674Z,"French Speaking Lesson",General,0
+user_002,69202f6be8ab55f147f77a39,view,2025-11-02T10:42:05.674Z,"Advanced Level Programming",General,0
+user_002,69202de5e8ab55f147f77a1c,view,2025-11-10T19:42:05.674Z,"AL Python",General,0
+user_002,68a586831ac00c84751b7f8d,view,2025-11-22T04:42:05.674Z,"photoshop",General,0
+user_002,691ffa923c5e64c18a5b3acf,view,2025-11-18T00:42:05.674Z,"French Basics",General,0
+user_002,68a586831ac00c84751b7f8d,click,2025-10-29T06:42:05.674Z,"photoshop",General,0
+user_002,68a586831ac00c84751b7f8d,click,2025-10-25T15:42:05.674Z,"photoshop",General,0
+user_002,691fedad92cb9e360ec91df9,click,2025-11-16T08:42:05.674Z,"Interaction Design",General,0
+user_002,680348eb74e26f379c5ab593,view,2025-11-19T19:42:05.674Z,"User expereince",General,0
+user_002,69202593e8ab55f147f7792b,view,2025-10-27T10:42:05.674Z,"Subnet Masking",General,0
+user_002,68a586831ac00c84751b7f8d,view,2025-11-11T22:42:05.674Z,"photoshop",General,0
+user_002,69202593e8ab55f147f7792b,view,2025-11-17T22:42:05.674Z,"Subnet Masking",General,0
+user_002,691fedad92cb9e360ec91df9,view,2025-11-07T00:42:05.674Z,"Interaction Design",General,0
+user_002,691ffb553c5e64c18a5b3ad5,view,2025-10-26T18:42:05.674Z,"French Grammer Basics",General,0
+user_002,69202648e8ab55f147f7793c,view,2025-11-16T18:42:05.674Z,"IP Addressing",General,0
+user_002,691ffa923c5e64c18a5b3acf,view,2025-11-09T19:42:05.674Z,"French Basics",General,0
+user_002,691ffb553c5e64c18a5b3ad5,view,2025-11-03T06:42:05.674Z,"French Grammer Basics",General,0
+user_002,691ffb553c5e64c18a5b3ad5,view,2025-11-04T11:42:05.674Z,"French Grammer Basics",General,0
+user_002,68a586261ac00c84751b7f88,click,2025-11-14T17:42:05.674Z,"Graphic Design",General,0
+user_002,68a586261ac00c84751b7f88,view,2025-11-03T18:42:05.674Z,"Graphic Design",General,0
+user_002,691ffb553c5e64c18a5b3ad5,view,2025-11-16T02:42:05.674Z,"French Grammer Basics",General,0
+user_002,691ffb553c5e64c18a5b3ad5,view,2025-10-28T02:42:05.674Z,"French Grammer Basics",General,0
+user_002,692025ece8ab55f147f77933,click,2025-11-10T11:42:05.674Z,"VLAN Configurations",General,0
+user_002,69202de5e8ab55f147f77a1c,view,2025-11-17T03:42:05.674Z,"AL Python",General,0
+user_002,68a586261ac00c84751b7f88,view,2025-10-29T23:42:05.674Z,"Graphic Design",General,0
+user_002,691ffb553c5e64c18a5b3ad5,view,2025-11-12T17:42:05.674Z,"French Grammer Basics",General,0
+user_002,692025ece8ab55f147f77933,view,2025-11-06T22:42:05.674Z,"VLAN Configurations",General,0
+user_002,68a586831ac00c84751b7f8d,view,2025-11-03T01:42:05.674Z,"photoshop",General,0
+user_002,691ffc663c5e64c18a5b3adc,view,2025-10-28T14:42:05.674Z,"French Speaking Lesson",General,0
+user_002,69202648e8ab55f147f7793c,view,2025-10-28T05:42:05.674Z,"IP Addressing",General,0
+user_003,691ffc663c5e64c18a5b3adc,view,2025-11-18T07:42:12.467Z,"French Speaking Lesson",General,0
+user_003,68a586831ac00c84751b7f8d,view,2025-11-03T21:42:12.467Z,"photoshop",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-11-03T01:42:12.467Z,"French Grammer Basics",General,0
+user_003,68a586261ac00c84751b7f88,view,2025-11-14T01:42:12.467Z,"Graphic Design",General,0
+user_003,68a586831ac00c84751b7f8d,view,2025-11-05T22:42:12.467Z,"photoshop",General,0
+user_003,691fedad92cb9e360ec91df9,click,2025-10-31T09:42:12.467Z,"Interaction Design",General,0
+user_003,68a586261ac00c84751b7f88,view,2025-11-11T06:42:12.467Z,"Graphic Design",General,0
+user_003,69202de5e8ab55f147f77a1c,click,2025-11-14T09:42:12.467Z,"AL Python",General,0
+user_003,69202de5e8ab55f147f77a1c,click,2025-10-28T07:42:12.467Z,"AL Python",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-10-25T19:42:12.467Z,"French Grammer Basics",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-11-17T09:42:12.467Z,"French Grammer Basics",General,0
+user_003,69202f6be8ab55f147f77a39,view,2025-11-18T11:42:12.467Z,"Advanced Level Programming",General,0
+user_003,69202f6be8ab55f147f77a39,view,2025-10-31T16:42:12.467Z,"Advanced Level Programming",General,0
+user_003,68a586831ac00c84751b7f8d,view,2025-10-30T01:42:12.467Z,"photoshop",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-11-15T03:42:12.467Z,"French Grammer Basics",General,0
+user_003,680348eb74e26f379c5ab593,view,2025-11-15T11:42:12.467Z,"User expereince",General,0
+user_003,68a586831ac00c84751b7f8d,click,2025-11-03T07:42:12.467Z,"photoshop",General,0
+user_003,691fedad92cb9e360ec91df9,view,2025-11-03T21:42:12.467Z,"Interaction Design",General,0
+user_003,69202593e8ab55f147f7792b,view,2025-10-29T15:42:12.467Z,"Subnet Masking",General,0
+user_003,68a586831ac00c84751b7f8d,view,2025-10-26T12:42:12.467Z,"photoshop",General,0
+user_003,69202f2be8ab55f147f77a30,view,2025-11-01T06:42:12.467Z,"Number Systems",General,0
+user_003,69202648e8ab55f147f7793c,click,2025-10-29T04:42:12.467Z,"IP Addressing",General,0
+user_003,69202de5e8ab55f147f77a1c,click,2025-11-14T00:42:12.467Z,"AL Python",General,0
+user_003,68a586831ac00c84751b7f8d,click,2025-11-10T04:42:12.467Z,"photoshop",General,0
+user_003,692025ece8ab55f147f77933,view,2025-11-04T09:42:12.467Z,"VLAN Configurations",General,0
+user_003,69202de5e8ab55f147f77a1c,click,2025-11-18T15:42:12.467Z,"AL Python",General,0
+user_003,68a586831ac00c84751b7f8d,view,2025-11-15T13:42:12.467Z,"photoshop",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-10-27T22:42:12.467Z,"French Grammer Basics",General,0
+user_003,691ffa923c5e64c18a5b3acf,view,2025-11-11T20:42:12.467Z,"French Basics",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-11-06T10:42:12.467Z,"French Grammer Basics",General,0
+user_003,69202593e8ab55f147f7792b,click,2025-11-07T06:42:12.467Z,"Subnet Masking",General,0
+user_003,69202f2be8ab55f147f77a30,click,2025-11-19T08:42:12.467Z,"Number Systems",General,0
+user_003,69202f6be8ab55f147f77a39,click,2025-10-26T04:42:12.467Z,"Advanced Level Programming",General,0
+user_003,691ffb553c5e64c18a5b3ad5,view,2025-11-18T15:42:12.467Z,"French Grammer Basics",General,0
+user_003,691ffc663c5e64c18a5b3adc,click,2025-10-26T20:42:12.467Z,"French Speaking Lesson",General,0
+user_003,69202648e8ab55f147f7793c,view,2025-11-16T06:42:12.467Z,"IP Addressing",General,0
+user_003,691fedad92cb9e360ec91df9,view,2025-10-29T15:42:12.467Z,"Interaction Design",General,0
+user_003,69202593e8ab55f147f7792b,view,2025-10-28T04:42:12.467Z,"Subnet Masking",General,0
+user_003,691fedad92cb9e360ec91df9,click,2025-11-03T13:42:12.467Z,"Interaction Design",General,0
+user_003,69202593e8ab55f147f7792b,view,2025-11-15T02:42:12.467Z,"Subnet Masking",General,0

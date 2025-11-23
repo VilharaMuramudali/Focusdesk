@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PersonalizedRecommendations from '../../../components/PersonalizedRecommendations/PersonalizedRecommendations';
 import './Home.scss';
 
 function Home() {
@@ -25,6 +26,9 @@ function Home() {
   return (
     <div className="home">
       <h2>Welcome to Tutor Dashboard</h2>
+      
+      {/* ML-powered personalized recommendations */}
+      <PersonalizedRecommendations />
 
       <div className="tutor-details">
         <h3>Edit Tutor Details</h3>

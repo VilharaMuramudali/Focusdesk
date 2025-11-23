@@ -31,6 +31,39 @@
     }
 
     .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+
+      .withdraw-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background: #059669;
+          transform: translateY(-1px);
+        }
+
+        &:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+
+        svg {
+          font-size: 1rem;
+        }
+      }
+
       .export-btn {
         display: flex;
         align-items: center;
@@ -51,6 +84,78 @@
 
         svg {
           font-size: 1rem;
+        }
+      }
+    }
+  }
+
+  // Withdrawal Balance Card
+  .withdrawal-balance-card {
+    background: linear-gradient(135deg, #10b981, #059669);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: white;
+
+    .balance-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+
+      .balance-info {
+        flex: 1;
+        min-width: 300px;
+
+        .balance-label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          opacity: 0.9;
+          margin-bottom: 0.5rem;
+
+          .balance-icon {
+            font-size: 1.25rem;
+          }
+        }
+
+        .balance-amount {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin-bottom: 1rem;
+        }
+
+        .balance-details {
+          display: flex;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+          font-size: 0.875rem;
+          opacity: 0.9;
+
+          .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+
+            &.pending {
+              color: #fef3c7;
+            }
+          }
+        }
+      }
+
+      .balance-actions {
+        .withdrawal-warning {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          font-size: 0.875rem;
         }
       }
     }
@@ -785,6 +890,367 @@
     .modal-overlay .transaction-modal {
       margin: 1rem;
       max-height: calc(100vh - 2rem);
+    }
+
+    .withdrawal-balance-card {
+      padding: 1.5rem;
+    }
+
+    .withdrawal-modal {
+      margin: 1rem;
+      max-height: calc(100vh - 2rem);
+    }
+  }
+
+  // Withdrawal History Section
+  .withdrawal-history-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        svg {
+          color: #10b981;
+        }
+      }
+    }
+
+    .withdrawals-table {
+      .table-header,
+      .table-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr;
+        gap: 1rem;
+        padding: 1rem;
+        align-items: center;
+      }
+
+      .table-header {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .table-row {
+        border-bottom: 1px solid #e2e8f0;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: #f8fafc;
+        }
+
+        .table-cell {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          &.amount {
+            font-weight: 600;
+            color: #1e293b;
+          }
+
+          .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+
+            &.withdrawal-pending {
+              background: #fef3c7;
+              color: #92400e;
+            }
+
+            &.withdrawal-processing {
+              background: #dbeafe;
+              color: #1e40af;
+            }
+
+            &.withdrawal-completed {
+              background: #d1fae5;
+              color: #065f46;
+            }
+
+            &.withdrawal-rejected {
+              background: #fee2e2;
+              color: #991b1b;
+            }
+
+            &.withdrawal-cancelled {
+              background: #f3f4f6;
+              color: #374151;
+            }
+          }
+
+          .action-btn {
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &.cancel-btn {
+              color: #ef4444;
+              background: #fee2e2;
+
+              &:hover {
+                background: #fecaca;
+              }
+            }
+
+            &.view-btn {
+              color: #3b82f6;
+              background: #dbeafe;
+
+              &:hover {
+                background: #bfdbfe;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Withdrawal Modal
+  .withdrawal-modal {
+    background: white;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #64748b;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #f1f5f9;
+          color: #1e293b;
+        }
+      }
+    }
+
+    .withdrawal-form {
+      padding: 1.5rem;
+
+      .error-message {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: #fee2e2;
+        color: #991b1b;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+      }
+
+      .balance-display {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+
+        .balance-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem 0;
+
+          span {
+            color: #64748b;
+            font-size: 0.875rem;
+          }
+
+          strong {
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 600;
+          }
+        }
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+
+        label {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.5rem;
+        }
+
+        input,
+        select,
+        textarea {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+        }
+
+        .amount-input-group {
+          display: flex;
+          gap: 0.5rem;
+
+          .currency-select {
+            width: 100px;
+            flex-shrink: 0;
+          }
+
+          input {
+            flex: 1;
+          }
+        }
+
+        .form-hint {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+          font-size: 0.75rem;
+          color: #64748b;
+
+          svg {
+            color: #3b82f6;
+          }
+        }
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .bank-details-section {
+        background: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+
+        h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #1e293b;
+          margin: 0 0 1rem 0;
+        }
+      }
+
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+
+        .btn-secondary {
+          padding: 0.75rem 1.5rem;
+          background: white;
+          color: #374151;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
+
+        .btn-primary {
+          padding: 0.75rem 1.5rem;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-1px);
+          }
+
+          &:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+          }
+        }
+      }
     }
   }
 }

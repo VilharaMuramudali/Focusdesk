@@ -5,12 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon server.js",
-    "train-ai": "cd python-ai && python run_training.py",
-    "data-pipeline": "cd python-ai && python data_pipeline.py",
-    "start-ai": "cd python-ai && python app.py",
-    "test-ai": "cd python-ai && python test_ai_service.py",
-    "install-ai-deps": "cd python-ai && pip install -r requirements.txt"
+    "start": "nodemon server.js"
   },
   "keywords": [],
   "author": "",

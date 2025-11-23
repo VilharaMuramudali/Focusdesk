@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { FaStar, FaStarHalfAlt, FaRegStar, FaArrowLeft, FaCalendarAlt, FaClock, FaUser, FaLanguage, FaVideo, FaGraduationCap, FaComments, FaPaperPlane } from "react-icons/fa";
 import newRequest from "../../../utils/newRequest";
 import { useChat } from '../../../context/ChatContext.jsx';
 import { useNotifications } from '../../../hooks/useNotifications';
+import { CurrencyContext } from '../../../context/CurrencyContext.jsx';
 import BookingForm from "../../../components/bookingForm/BookingForm";
 import RatingDisplay from "../../../components/RatingDisplay";
+import SimilarPackages from "../../../components/SimilarPackages/SimilarPackages";
+import tracker from "../../../services/recommendationTracker";
 import "./packageDetail.scss";
 
 function PackageDetail() {
@@ -19,60 +22,23 @@ function PackageDetail() {
   const [showChatModal, setShowChatModal] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsTotalPages, setReviewsTotalPages] = useState(1);
   
-  const { createNewConversation, sendTextMessage } = useChat();
+  const { createConversation, sendMessage } = useChat();
   const { showSuccessNotification, showErrorNotification } = useNotifications();
+  
+  const { currency: selectedCurrency, convertCurrency, getCurrencySymbol } = useContext(CurrencyContext);
 
-  // Track package view with time spent
   useEffect(() => {
-    const viewStartTime = new Date();
-    let timeSpent = 0;
-    
-    // Function to track view end
-    const trackViewEnd = async () => {
-      const viewEndTime = new Date();
-      timeSpent = Math.floor((viewEndTime - viewStartTime) / 1000); // Time in seconds
-      
-      if (id && timeSpent > 0) {
-        try {
-          // Get search query from URL params or sessionStorage
-          const searchQuery = new URLSearchParams(window.location.search).get('search') || 
-                             sessionStorage.getItem('lastSearchQuery') || null;
-          const searchKeywords = searchQuery ? 
-            searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 2) : [];
-          
-          await newRequest.post('/recommend/track-package-view', {
-            packageId: id,
-            timeSpent,
-            viewStartTime: viewStartTime.toISOString(),
-            viewEndTime: viewEndTime.toISOString(),
-            searchQuery,
-            searchKeywords
-          });
-        } catch (error) {
-          console.error('Error tracking package view:', error);
-        }
-      }
-    };
-    
-    // Track when component unmounts or page visibility changes
-    const handleBeforeUnload = () => {
-      trackViewEnd();
-    };
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        trackViewEnd();
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Track package view with ML tracker
+    tracker.trackView(id);
     
     return () => {
-      trackViewEnd();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Track view end when leaving the page
+      tracker.trackViewEnd(id);
     };
   }, [id]);
 
@@ -86,7 +52,6 @@ function PackageDetail() {
         console.log('PackageDetail: Package response:', response.data);
         setPackageData(response.data);
 
-        // Use populated educator data from package response
         if (response.data.educatorId) {
           console.log('PackageDetail: Educator data from package:', response.data.educatorId);
           setEducator(response.data.educatorId);
@@ -105,17 +70,49 @@ function PackageDetail() {
     };
 
     fetchPackageData();
+  }, [id]);
 
-    // Listen for global review submission to refresh ratings dynamically
-    const handleReviewSubmitted = (evt) => {
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!id) return;
+      
+      try {
+        setReviewsLoading(true);
+        const response = await newRequest.get(`/reviews/package/${id}?page=${reviewsPage}&limit=5`);
+        console.log('Package reviews response:', response.data);
+        
+        if (response.data.success) {
+          setReviews(response.data.data.reviews || []);
+          setReviewsTotalPages(response.data.data.totalPages || 1);
+        }
+      } catch (err) {
+        console.error("Error fetching package reviews:", err);
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
+
+    const handleReviewSubmitted = async (evt) => {
       if (evt?.detail?.packageId === id) {
-        fetchPackageData();
+        fetchReviews();
+        
+        try {
+          const response = await newRequest.get(`/packages/${id}`);
+          if (response.data) {
+            setPackageData(response.data);
+          }
+        } catch (err) {
+          console.error("Error refreshing package data:", err);
+        }
       }
     };
 
     window.addEventListener('package-review-submitted', handleReviewSubmitted);
     return () => window.removeEventListener('package-review-submitted', handleReviewSubmitted);
-  }, [id]);
+  }, [id, reviewsPage]);
 
   const handleBookSession = () => {
     console.log('Book session clicked');
@@ -125,7 +122,6 @@ function PackageDetail() {
 
   const handleBookingSuccess = () => {
     setShowBookingForm(false);
-    // You can add a success message or redirect
   };
 
   const handleBookingCancel = () => {
@@ -145,20 +141,18 @@ function PackageDetail() {
 
     setIsSending(true);
     try {
-      // Create conversation if it doesn't exist
-      const conversation = await createNewConversation(
+      const conversation = await createConversation(
         educator._id,
-        educator.username,
-        null // No booking ID for pre-booking messages
+        educator.fullName || educator.name || educator.username,
+        'educator',
+        null
       );
 
-      // Send the message
-      await sendTextMessage(conversation._id, messageText.trim());
+      await sendMessage(conversation._id, messageText.trim());
       
       setMessageText('');
       showSuccessNotification('Message sent successfully!');
       
-      // Close modal and navigate to messages page
       setShowChatModal(false);
       navigate('/messages');
       
@@ -183,7 +177,25 @@ function PackageDetail() {
     setIsSending(false);
   };
 
-  // Rating stars component
+  const formatPackagePrice = (pkg) => {
+    if (!pkg) return 'Rs.0/hr';
+    
+    const packageCurrency = pkg.currency || 'LKR';
+    const packageRate = pkg.rate || 0;
+    
+    const convertedRate = packageCurrency !== selectedCurrency
+      ? convertCurrency(packageRate, packageCurrency, selectedCurrency)
+      : packageRate;
+    
+    const symbol = getCurrencySymbol(selectedCurrency);
+    
+    if (packageCurrency !== selectedCurrency) {
+      return `${symbol}${convertedRate.toFixed(2)}/hr`;
+    }
+    
+    return `${symbol}${packageRate}/hr`;
+  };
+
   const RatingStars = ({ rating = 0, totalReviews = 0 }) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -237,125 +249,174 @@ function PackageDetail() {
         </div>
 
         <div className="package-header">
-          <h1>{packageData.title}</h1>
-          <div className="package-meta">
-            {packageData.keywords && packageData.keywords.map((keyword, index) => (
-              <span key={index} className="keyword-badge">{keyword}</span>
-            ))}
+          <div className="header-content">
+            <h1>{packageData.title}</h1>
+            {packageData.keywords && packageData.keywords.length > 0 && (
+              <div className="package-meta">
+                {packageData.keywords.slice(0, 4).map((keyword, index) => (
+                  <span key={index} className="keyword-badge">{keyword}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="header-price">
+            <h2>{formatPackagePrice(packageData)}</h2>
+            <button className="book-button" onClick={handleBookSession}>
+              Book This Package
+            </button>
           </div>
         </div>
 
-        <div className="package-content">
-          <div className="package-main">
+        <div className="package-grid-layout">
+          {/* Left Column - Image & Educator */}
+          <div className="left-column">
             {packageData.thumbnail ? (
               <img src={packageData.thumbnail} alt={packageData.title} className="package-image" />
             ) : (
               <div className="package-image-placeholder">
-                <FaUser size={60} />
+                <FaUser size={50} />
               </div>
             )}
 
-            <div className="package-description">
-              <h2>About this Learning Package</h2>
-              <p>{packageData.description}</p>
-
-              <div className="package-details">
-                <div className="detail-item">
-                  <FaCalendarAlt />
-                  <span>{packageData.sessions || 1} Session(s)</span>
-                </div>
-                <div className="detail-item">
-                  <FaClock />
-                  <span>Approximately 1 hour per session</span>
-                </div>
-                {packageData.languages && packageData.languages.length > 0 && (
-                  <div className="detail-item">
-                    <FaLanguage />
-                    <span>Languages: {packageData.languages.join(", ")}</span>
-                  </div>
-                )}
-              </div>
-
-              {packageData.video && (
-                <div className="package-video">
-                  <h3><FaVideo /> Introduction Video</h3>
-                  <a href={packageData.video} target="_blank" rel="noopener noreferrer" className="video-link">
-                    Watch Introduction Video
-                  </a>
-                </div>
-              )}
-              
-              {packageData.languages && packageData.languages.length > 0 && (
-                <div className="package-languages">
-                  <h3><FaLanguage /> Available Languages</h3>
-                  <div className="language-tags">
-                    {packageData.languages.map((language, index) => (
-                      <span key={index} className="language-tag">{language}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Rating Section - Moved here from header */}
-              <div className="package-rating-section">
-                <h3>Package Ratings & Reviews</h3>
-                <RatingDisplay 
-                  rating={packageData.rating || 0} 
-                  totalReviews={packageData.totalReviews || 0}
-                  ratingBreakdown={packageData.ratingBreakdown || {}}
-                  variant="detailed"
-                  className="package-rating-display"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="package-sidebar">
-            <div className="price-card">
-              <h3>Rs.{packageData.rate}/hr</h3>
-              <button className="book-button" onClick={handleBookSession}>
-                Book This Package
-              </button>
-            </div>
-
             {educator && (
-              <div className="educator-card">
-                <h3>About the Educator</h3>
+              <div className="educator-card-compact">
+                <h3>Educator</h3>
                 <div className="educator-info">
                   {educator.img ? (
-                    <img src={educator.img} alt={educator.username} className="educator-image" />
+                    <img src={educator.img.startsWith('http') ? educator.img : `http://localhost:8800/${educator.img}`} alt={educator.fullName || educator.name || educator.username} className="educator-image" />
                   ) : (
                     <div className="educator-image-placeholder">
                       <FaUser />
                     </div>
                   )}
-                  <div>
-                    <h4>{educator.username}</h4>
+                  <div className="educator-details">
+                    <h4>{educator.fullName || educator.name || educator.username}</h4>
                     <p>{educator.bio || "Experienced educator"}</p>
                   </div>
                 </div>
-                <div className="educator-actions">
+                <div className="educator-actions-compact">
                   <Link to={`/educator/${educator._id}`} className="view-profile-link">
-                    View Full Profile
+                    View Profile
                   </Link>
                   <button className="message-educator-btn" onClick={handleMessageEducator}>
-                    <FaComments />
-                    Message Educator
+                    <FaComments /> Message
                   </button>
                 </div>
               </div>
             )}
-            
-            <div className="package-summary-card">
-              <h3>Package Summary</h3>
-              <ul className="summary-list">
-                <li><strong>Rate:</strong> Rs.{packageData.rate}/hr</li>
-                <li><strong>Sessions:</strong> {packageData.sessions || 1}</li>
-                {packageData.languages && packageData.languages.length > 0 && (
-                  <li><strong>Languages:</strong> {packageData.languages.join(", ")}</li>
-                )}
-                <li><strong>Sample Video:</strong> {packageData.video ? "Available" : "Not available"}</li>
-              </ul>
+          </div>
+
+          {/* Middle Column - Main Content */}
+          <div className="middle-column">
+            <div className="package-description-compact">
+              <p>{packageData.description}</p>
+            </div>
+
+            <div className="package-details-grid">
+              <div className="detail-item">
+                <FaCalendarAlt />
+                <span>{packageData.sessions || 1} Session(s)</span>
+              </div>
+              <div className="detail-item">
+                <FaClock />
+                <span>~1 hour/session</span>
+              </div>
+              {packageData.languages && packageData.languages.length > 0 && (
+                <div className="detail-item">
+                  <FaLanguage />
+                  <span>{packageData.languages.join(", ")}</span>
+                </div>
+              )}
+              {packageData.video && (
+                <div className="detail-item">
+                  <FaVideo />
+                  <a href={packageData.video} target="_blank" rel="noopener noreferrer" className="video-link">
+                    Intro Video
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Compact Rating Summary */}
+            <div className="rating-summary-compact">
+              <h3>Ratings</h3>
+              <RatingDisplay 
+                rating={packageData.rating || 0} 
+                totalReviews={packageData.totalReviews || 0}
+                ratingBreakdown={packageData.ratingBreakdown || {}}
+                variant="detailed"
+                className="package-rating-display"
+              />
+            </div>
+          </div>
+
+          {/* Right Column - Reviews */}
+          <div className="right-column">
+            <div className="reviews-section-compact">
+              <h3>Recent Reviews</h3>
+              
+              {reviewsLoading ? (
+                <div className="reviews-loading">Loading...</div>
+              ) : reviews.length > 0 ? (
+                <>
+                  <div className="reviews-list-compact">
+                    {reviews.slice(0, 3).map((review) => (
+                      <div key={review._id} className="review-item-compact">
+                        <div className="review-header-compact">
+                          <div className="reviewer-info-compact">
+                            {review.studentId?.img ? (
+                              <img 
+                                src={review.studentId.img} 
+                                alt={review.studentId.username || 'User'} 
+                                className="reviewer-avatar-small"
+                              />
+                            ) : (
+                              <div className="reviewer-avatar-small placeholder">
+                                <FaUser />
+                              </div>
+                            )}
+                            <div>
+                              <div className="reviewer-name-small">
+                                {review.studentId?.username || 'Anonymous'}
+                              </div>
+                              <RatingStars rating={review.overallRating} />
+                            </div>
+                          </div>
+                        </div>
+                        {review.review && (
+                          <div className="review-content-compact">
+                            <p>{review.review.length > 100 ? `${review.review.substring(0, 100)}...` : review.review}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {reviewsTotalPages > 1 && (
+                    <div className="reviews-pagination-compact">
+                      <button
+                        onClick={() => setReviewsPage(prev => Math.max(1, prev - 1))}
+                        disabled={reviewsPage === 1}
+                        className="pagination-btn-small"
+                      >
+                        ‹
+                      </button>
+                      <span>{reviewsPage}/{reviewsTotalPages}</span>
+                      <button
+                        onClick={() => setReviewsPage(prev => Math.min(reviewsTotalPages, prev + 1))}
+                        disabled={reviewsPage === reviewsTotalPages}
+                        className="pagination-btn-small"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="no-reviews-message-compact">
+                  <FaComments />
+                  <p>No reviews yet</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -369,13 +430,13 @@ function PackageDetail() {
               <div className="chat-user-info">
                 <div className="user-avatar">
                   {educator.img ? (
-                    <img src={educator.img} alt={educator.username} />
+                    <img src={educator.img.startsWith('http') ? educator.img : `http://localhost:8800/${educator.img}`} alt={educator.fullName || educator.name || educator.username} />
                   ) : (
                     <FaUser />
                   )}
                 </div>
                 <div className="user-details">
-                  <h4>{educator.username}</h4>
+                  <h4>{educator.fullName || educator.name || educator.username}</h4>
                   <p>{packageData?.title || 'Package Inquiry'}</p>
                   <div className="user-status">
                     <span className="status-dot online"></span>
@@ -391,7 +452,7 @@ function PackageDetail() {
             <div className="chat-messages">
               <div className="no-messages">
                 <FaComments />
-                <p>Start a conversation with {educator.username}</p>
+                <p>Start a conversation with {educator.fullName || educator.name || educator.username}</p>
                 <p className="message-hint">Ask questions about this package before booking.</p>
               </div>
             </div>
@@ -420,6 +481,9 @@ function PackageDetail() {
           </div>
         </div>
       )}
+      
+      {/* ML-powered similar packages recommendations */}
+      <SimilarPackages packageId={id} />
     </div>
   );
 }

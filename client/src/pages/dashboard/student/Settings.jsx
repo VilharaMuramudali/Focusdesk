@@ -6,6 +6,9 @@ import "./Settings.scss";
 
 export default function Settings() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   
@@ -46,6 +49,7 @@ export default function Settings() {
             bio: user.bio || "",
             educationLevel: user.educationLevel || ""
           });
+          setAvatarPreview(user.img || null);
         } else {
           // If no user in localStorage, try to fetch from API
           const response = await newRequest.get("/users/me");
@@ -60,6 +64,7 @@ export default function Settings() {
               bio: response.data.bio || "",
               educationLevel: response.data.educationLevel || ""
             });
+            setAvatarPreview(response.data.img || response.data.imgPath || null);
           }
         }
       } catch (error) {
@@ -73,6 +78,44 @@ export default function Settings() {
 
     loadUserData();
   }, []);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile || !currentUser?._id) return;
+    setUploadingAvatar(true);
+    try {
+      const form = new FormData();
+      form.append('avatar', avatarFile);
+
+      const res = await newRequest.post(`/users/${currentUser._id}/avatar`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.img) {
+        const updatedUser = { ...currentUser, img: res.data.img };
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        setCurrentUser(updatedUser);
+
+        // Notify other components (topbar) to refresh
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
+
+        setAvatarFile(null);
+        setMessage({ type: 'success', text: 'Profile picture updated' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+      }
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to upload avatar' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const validateProfileForm = () => {
     const newErrors = {};
@@ -315,6 +358,26 @@ export default function Settings() {
                       placeholder="Enter your email"
                     />
                     {errors.email && <span className="error-text">{errors.email}</span>}
+                  </div>
+                </div>
+
+                <div className="form-row avatar-row">
+                  <div className="form-group avatar-group">
+                    <label>Profile Picture</label>
+                    <div className="avatar-preview">
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="Avatar preview" />
+                      ) : (
+                        <div className="avatar-placeholder">No image</div>
+                      )}
+                    </div>
+                    <input type="file" accept="image/*" onChange={handleAvatarChange} />
+                    <div className="avatar-actions">
+                      <button type="button" className="btn-secondary" onClick={() => { setAvatarFile(null); setAvatarPreview(currentUser?.img || null); }} disabled={uploadingAvatar}>Cancel</button>
+                      <button type="button" className="btn-primary" onClick={handleAvatarUpload} disabled={uploadingAvatar || !avatarFile}>
+                        {uploadingAvatar ? 'Uploading...' : 'Upload Picture'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

@@ -7,6 +7,7 @@ import CatCard from "../../components/catCard/CatCard";
 import ProjectCard from "../../components/projectCard/ProjectCard";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
+import PersonalizedRecommendations from "../../components/PersonalizedRecommendations/PersonalizedRecommendations";
 import { cards, projects } from "../../data";
 
 function Home() {
@@ -14,6 +15,9 @@ function Home() {
     <div className="home">
       <Navbar />
       <Featured />
+      
+      {/* ML-powered personalized recommendations */}
+      <PersonalizedRecommendations />
       
       <Slide slidesToShow={4} arrowsScroll={4}>
         {projects.map((card) => (

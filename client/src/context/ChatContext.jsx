@@ -1,5 +1,5 @@
 // context/ChatContext.jsx
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
 import newRequest from '../utils/newRequest';
@@ -115,12 +115,40 @@ function chatReducer(state, action) {
 // Chat Provider Component
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
-  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('currentUser'));
+    } catch (err) {
+      return null;
+    }
+  }, []);
+  const stateRef = useRef(state);
+  
+  // Keep state ref updated
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // API Functions - use useCallback to prevent recreation
+  const loadConversations = useCallback(async () => {
+    try {
+      dispatch({ type: CHAT_ACTIONS.SET_LOADING, payload: true });
+      const response = await newRequest.get('/conversations');
+      dispatch({ type: CHAT_ACTIONS.SET_CONVERSATIONS, payload: response.data.conversations || [] });
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      dispatch({ type: CHAT_ACTIONS.SET_ERROR, payload: error.response?.data?.message || error.message });
+    } finally {
+      dispatch({ type: CHAT_ACTIONS.SET_LOADING, payload: false });
+    }
+  }, []);
 
   // Initialize Socket.io connection
   useEffect(() => {
     if (!currentUser) return;
 
+    console.log('Initializing Socket.IO connection...');
+    
     const socket = io('http://localhost:8800', {
       auth: {
         token: localStorage.getItem('accessToken')
@@ -128,15 +156,16 @@ export function ChatProvider({ children }) {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      maxReconnectionAttempts: 5
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 10,
+      timeout: 10000
     });
 
     dispatch({ type: CHAT_ACTIONS.SET_SOCKET, payload: socket });
 
     // Connection events
     socket.on('connect', () => {
-      console.log('Connected to chat server');
+      console.log('✅ Connected to chat server');
       dispatch({ type: CHAT_ACTIONS.SET_CONNECTED, payload: true });
       dispatch({ type: CHAT_ACTIONS.CLEAR_ERROR });
       
@@ -148,29 +177,41 @@ export function ChatProvider({ children }) {
       });
     });
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from chat server');
+    socket.on('disconnect', (reason) => {
+      console.log('❌ Disconnected from chat server:', reason);
       dispatch({ type: CHAT_ACTIONS.SET_CONNECTED, payload: false });
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      dispatch({ type: CHAT_ACTIONS.SET_ERROR, payload: error.message });
+      console.error('❌ Connection error:', error.message);
+      dispatch({ type: CHAT_ACTIONS.SET_ERROR, payload: 'Unable to connect to chat server' });
       dispatch({ type: CHAT_ACTIONS.SET_CONNECTED, payload: false });
     });
 
-    socket.on('reconnect', () => {
-      console.log('Reconnected to chat server');
-      toast.success('Connected to chat server');
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔄 Reconnection attempt ${attemptNumber}...`);
     });
 
-    // Chat events
+    socket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ Reconnected after ${attemptNumber} attempts`);
+      toast.success('Connected to chat server');
+      dispatch({ type: CHAT_ACTIONS.SET_CONNECTED, payload: true });
+    });
+
+    socket.on('reconnect_failed', () => {
+      console.error('❌ Reconnection failed');
+      dispatch({ type: CHAT_ACTIONS.SET_ERROR, payload: 'Failed to reconnect to chat server' });
+      toast.error('Failed to connect to chat server');
+    });
+
+    // Chat events - use stateRef to get latest state
     socket.on('message', (data) => {
       if (data.message && data.message.senderId !== currentUser._id) {
         dispatch({ type: CHAT_ACTIONS.ADD_MESSAGE, payload: data.message });
         
         // Show notification if not in active conversation
-        if (state.activeConversation?._id !== data.message.conversationId) {
+        const currentState = stateRef.current;
+        if (currentState.activeConversation?._id !== data.message.conversationId) {
           toast.success(`New message from ${data.message.senderName}`, {
             duration: 3000,
             icon: '💬',
@@ -198,26 +239,30 @@ export function ChatProvider({ children }) {
 
     socket.on('typing_start', (data) => {
       if (data.userId !== currentUser._id) {
-        const newTypingUsers = new Map(state.typingUsers);
+        const currentState = stateRef.current;
+        const newTypingUsers = new Map(currentState.typingUsers);
         newTypingUsers.set(data.userId, data.userName);
         dispatch({ type: CHAT_ACTIONS.SET_TYPING_USERS, payload: Array.from(newTypingUsers) });
       }
     });
 
     socket.on('typing_stop', (data) => {
-      const newTypingUsers = new Map(state.typingUsers);
+      const currentState = stateRef.current;
+      const newTypingUsers = new Map(currentState.typingUsers);
       newTypingUsers.delete(data.userId);
       dispatch({ type: CHAT_ACTIONS.SET_TYPING_USERS, payload: Array.from(newTypingUsers) });
     });
 
     socket.on('user_online', (data) => {
-      const newOnlineUsers = new Set(state.onlineUsers);
+      const currentState = stateRef.current;
+      const newOnlineUsers = new Set(currentState.onlineUsers);
       newOnlineUsers.add(data.userId);
       dispatch({ type: CHAT_ACTIONS.SET_ONLINE_USERS, payload: Array.from(newOnlineUsers) });
     });
 
     socket.on('user_offline', (data) => {
-      const newOnlineUsers = new Set(state.onlineUsers);
+      const currentState = stateRef.current;
+      const newOnlineUsers = new Set(currentState.onlineUsers);
       newOnlineUsers.delete(data.userId);
       dispatch({ type: CHAT_ACTIONS.SET_ONLINE_USERS, payload: Array.from(newOnlineUsers) });
     });
@@ -232,21 +277,7 @@ export function ChatProvider({ children }) {
     if (state.isConnected && currentUser) {
       loadConversations();
     }
-  }, [state.isConnected, currentUser]);
-
-  // API Functions
-  const loadConversations = async () => {
-    try {
-      dispatch({ type: CHAT_ACTIONS.SET_LOADING, payload: true });
-      const response = await newRequest.get('/conversations');
-      dispatch({ type: CHAT_ACTIONS.SET_CONVERSATIONS, payload: response.data.conversations || [] });
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-      dispatch({ type: CHAT_ACTIONS.SET_ERROR, payload: error.response?.data?.message || error.message });
-    } finally {
-      dispatch({ type: CHAT_ACTIONS.SET_LOADING, payload: false });
-    }
-  };
+  }, [state.isConnected, currentUser, loadConversations]);
 
   const loadMessages = async (conversationId, page = 1) => {
     try {
@@ -271,6 +302,16 @@ export function ChatProvider({ children }) {
 
   const sendMessage = async (conversationId, content, messageType = 'text', file = null) => {
     try {
+      if (!conversationId) {
+        throw new Error('Conversation ID is required to send a message');
+      }
+
+      if (!content && messageType === 'text') {
+        throw new Error('Message content is required');
+      }
+
+      console.log('Sending message:', { conversationId, content, messageType });
+
       const messageData = {
         conversationId,
         content: content || '',
@@ -294,18 +335,14 @@ export function ChatProvider({ children }) {
         messageData.fileType = uploadResponse.data.fileType;
       }
 
+      console.log('Posting message to API:', messageData);
       const response = await newRequest.post('/messages', messageData);
+      console.log('Message sent successfully:', response.data);
       
-      // Add message to local state immediately
+      // Add message to local state immediately (optimistic update).
+      // Do NOT emit the message from the client — rely on the server
+      // to persist and emit the canonical message to conversation room.
       dispatch({ type: CHAT_ACTIONS.ADD_MESSAGE, payload: response.data });
-      
-      // Emit message via socket for real-time delivery
-      if (state.socket && state.isConnected) {
-        state.socket.emit('message', {
-          conversationId,
-          message: response.data
-        });
-      }
       
       // Update conversation with last message
       dispatch({ 
@@ -320,6 +357,13 @@ export function ChatProvider({ children }) {
       return response.data;
     } catch (error) {
       console.error('Error sending message:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        conversationId,
+        content
+      });
       
       let errorMessage = 'Failed to send message. Please try again.';
       if (error.response?.status === 401) {
@@ -332,6 +376,8 @@ export function ChatProvider({ children }) {
         errorMessage = error.response.data.message;
       } else if (error.message === 'Network Error') {
         errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       toast.error(errorMessage);
@@ -341,6 +387,8 @@ export function ChatProvider({ children }) {
 
   const createConversation = async (receiverId, receiverName, receiverType, bookingId = null) => {
     try {
+      console.log('Creating conversation:', { receiverId, receiverName, receiverType, bookingId });
+      
       const response = await newRequest.post('/conversations', {
         receiverId,
         receiverName,
@@ -348,29 +396,50 @@ export function ChatProvider({ children }) {
         bookingId
       });
       
-      const newConversation = response.data;
-      dispatch({ 
-        type: CHAT_ACTIONS.SET_CONVERSATIONS, 
-        payload: [newConversation, ...state.conversations] 
-      });
+      console.log('Conversation API response:', response);
       
-      return newConversation;
+      // Backend returns 200 for both new and existing conversations
+      const conversation = response.data;
+      
+      if (!conversation || !conversation._id) {
+        throw new Error('Invalid conversation response from server');
+      }
+      
+      console.log('Conversation created/retrieved:', conversation);
+      
+      // Check if conversation already exists in state
+      const currentState = stateRef.current;
+      const existingInState = currentState.conversations.find(
+        conv => conv._id === conversation._id
+      );
+      
+      if (!existingInState) {
+        dispatch({ 
+          type: CHAT_ACTIONS.SET_CONVERSATIONS, 
+          payload: [conversation, ...currentState.conversations] 
+        });
+      }
+      
+      return conversation;
     } catch (error) {
       console.error('Error creating conversation:', error);
       
+      // Build a sensible error message
       let errorMessage = 'Failed to create conversation. Please try again.';
       if (error.response?.status === 401) {
         errorMessage = 'Please log in again to create conversations.';
       } else if (error.response?.status === 400) {
         errorMessage = error.response.data?.message || 'Invalid conversation data.';
+      } else if (error.response?.status === 404) {
+        errorMessage = error.response.data?.message || 'User not found.';
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message === 'Network Error') {
         errorMessage = 'Unable to connect to server. Please check your internet connection.';
       }
-      
+
       toast.error(errorMessage);
-      throw error;
+      throw new Error(errorMessage);
     }
   };
 

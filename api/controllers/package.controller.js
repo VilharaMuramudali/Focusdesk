@@ -1,6 +1,7 @@
 import Package from "../models/package.model.js";
 import User from "../models/user.model.js";
 import Review from "../models/review.model.js";
+import EducatorProfile from "../models/educatorProfile.model.js";
 import createError from "../utils/createError.js";
 import mongoose from "mongoose";
 
@@ -18,9 +19,10 @@ export const getEducatorPackages = async (req, res, next) => {
     const packages = await Package.find({ educatorId: userId }).sort({ createdAt: -1 });
     
     // Calculate actual ratings from reviews
-    const packagesWithRatings = await calculatePackageRatings(packages);
+    let packagesWithRatings = await calculatePackageRatings(packages);
+    // Attach educator profile info (name/fullName)
+    packagesWithRatings = await attachEducatorProfilesToPackages(packagesWithRatings);
     
-    // Log packages to verify languages array
     console.log("Sending packages to frontend:", packagesWithRatings);
     
     res.status(200).json(packagesWithRatings);
@@ -41,14 +43,25 @@ export const createPackage = async (req, res, next) => {
       return next(createError(403, "Only educators can create packages"));
     }
     
-    const { thumbnail, title, description, keywords, rate, video, sessions, languages } = req.body;
+    const { thumbnail, title, description, keywords, currency, rate, video, sessions, languages, subjects } = req.body;
     
     console.log("Received package data:", req.body);
     console.log("Received languages:", languages);
+    console.log("Received subjects:", subjects);
     
     // Validate required fields
     if (!title || !description || !rate) {
       return next(createError(400, "Title, description, and rate are required"));
+    }
+
+    // Validate subjects
+    if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
+      return next(createError(400, "At least one subject/domain is required"));
+    }
+
+    // Validate currency if provided
+    if (currency && typeof currency !== 'string') {
+      return next(createError(400, "Invalid currency format"));
     }
     
     // Create new package
@@ -58,20 +71,33 @@ export const createPackage = async (req, res, next) => {
       title,
       description,
       keywords: Package.formatKeywords(keywords),
+      currency: currency || "LKR",
       rate: parseFloat(rate),
       video,
       sessions: sessions || 1,
-      languages: Array.isArray(languages) ? languages : []
+      languages: Array.isArray(languages) ? languages : [],
+      subjects: Array.isArray(subjects) ? subjects : []
     });
     
     await newPackage.save();
     
     console.log("Created package:", newPackage);
-    
-    res.status(201).json({
-      message: "Package created successfully",
-      package: newPackage
-    });
+    // Enrich the newly created package with educator profile data for immediate frontend use
+    try {
+      const profile = await EducatorProfile.findOne({ userId });
+      const enriched = {
+        ...newPackage.toObject(),
+        educatorId: {
+          _id: userId,
+          name: profile?.name || undefined,
+          fullName: profile?.fullName || undefined,
+          img: newPackage.thumbnail || undefined
+        }
+      };
+      return res.status(201).json({ message: "Package created successfully", package: enriched });
+    } catch (err) {
+      return res.status(201).json({ message: "Package created successfully", package: newPackage });
+    }
   } catch (error) {
     console.error("Error creating package:", error);
     next(createError(500, "Failed to create package"));
@@ -98,9 +124,10 @@ export const updatePackage = async (req, res, next) => {
       return next(createError(403, "You can only update your own packages"));
     }
     
-    const { thumbnail, title, description, keywords, rate, video, isActive, sessions, languages } = req.body;
+    const { thumbnail, title, description, keywords, currency, rate, video, isActive, sessions, languages, subjects } = req.body;
     
     console.log("Received languages in update:", languages);
+    console.log("Received subjects in update:", subjects);
     
     // Update package fields
     if (thumbnail !== undefined) packageToUpdate.thumbnail = thumbnail;
@@ -109,6 +136,10 @@ export const updatePackage = async (req, res, next) => {
     
     if (keywords !== undefined) {
       packageToUpdate.keywords = Package.formatKeywords(keywords);
+    }
+    
+    if (currency !== undefined) {
+      packageToUpdate.currency = currency || "LKR";
     }
     
     if (rate !== undefined) {
@@ -120,6 +151,21 @@ export const updatePackage = async (req, res, next) => {
       packageToUpdate.languages = Array.isArray(languages) ? languages : [];
     }
     
+    // Explicitly handle subjects array
+    if (subjects !== undefined) {
+      // If subjects is provided, validate it
+      if (!Array.isArray(subjects)) {
+        return next(createError(400, "Subjects must be an array"));
+      }
+      // Require at least one subject when updating
+      if (subjects.length === 0) {
+        return next(createError(400, "At least one subject/domain is required"));
+      }
+      // Update subjects if valid array with items
+      packageToUpdate.subjects = subjects;
+    }
+    // If subjects is undefined, keep existing subjects (no change needed)
+    
     if (video !== undefined) packageToUpdate.video = video;
     if (isActive !== undefined) packageToUpdate.isActive = isActive;
     if (sessions !== undefined) packageToUpdate.sessions = sessions;
@@ -127,11 +173,22 @@ export const updatePackage = async (req, res, next) => {
     await packageToUpdate.save();
     
     console.log("Updated package:", packageToUpdate);
-    
-    res.status(200).json({
-      message: "Package updated successfully",
-      package: packageToUpdate
-    });
+    // Enrich updated package with educator profile if available
+    try {
+      const profile = await EducatorProfile.findOne({ userId });
+      const enriched = {
+        ...packageToUpdate.toObject(),
+        educatorId: {
+          _id: userId,
+          name: profile?.name || undefined,
+          fullName: profile?.fullName || undefined,
+          img: packageToUpdate.thumbnail || undefined
+        }
+      };
+      return res.status(200).json({ message: "Package updated successfully", package: enriched });
+    } catch (err) {
+      return res.status(200).json({ message: "Package updated successfully", package: packageToUpdate });
+    }
   } catch (error) {
     console.error("Error updating package:", error);
     next(createError(500, "Failed to update package"));
@@ -197,11 +254,28 @@ export const getPackageById = async (req, res, next) => {
     const ratingData = await Review.getPackageAverageRating(packageId);
     console.log(`getPackageById: Package ${packageId} rating data:`, ratingData);
     
-    const packageWithRating = {
+    let packageWithRating = {
       ...packageData.toObject(),
       rating: ratingData.averageRating,
-      totalReviews: ratingData.totalReviews
+      totalReviews: ratingData.totalReviews,
+      ratingBreakdown: ratingData.ratingBreakdown || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
     };
+
+    // Attach educator profile to single package
+    try {
+      const eid = packageWithRating.educatorId?._id || packageWithRating.educatorId;
+      const profile = eid ? await EducatorProfile.findOne({ userId: eid }) : null;
+      packageWithRating.educatorId = {
+        ...packageWithRating.educatorId,
+        name: profile?.name || packageWithRating.educatorId?.name,
+        fullName: profile?.fullName || packageWithRating.educatorId?.fullName,
+        img: packageWithRating.educatorId?.img || profile?.img
+      };
+      packageWithRating.educatorProfile = profile ? profile.toObject() : null;
+      packageWithRating.educatorDisplayName = profile?.fullName || profile?.name || packageWithRating.educatorId?.username || 'Educator';
+    } catch (err) {
+      console.warn('getPackageById: could not attach educator profile', err);
+    }
     
     console.log('getPackageById: Sending package with rating:', {
       _id: packageWithRating._id,
@@ -276,7 +350,8 @@ const calculatePackageRatings = async (packages) => {
         const result = {
           ...pkg.toObject(),
           rating: ratingData.averageRating,
-          totalReviews: ratingData.totalReviews
+          totalReviews: ratingData.totalReviews,
+          ratingBreakdown: ratingData.ratingBreakdown || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
         };
         
         console.log(`Package ${pkg._id} final result:`, {
@@ -313,15 +388,68 @@ const calculatePackageRatings = async (packages) => {
   return packagesWithRatings;
 };
 
+// Attach educator profile data (name/fullName/etc.) to package objects
+const attachEducatorProfilesToPackages = async (packages) => {
+  try {
+    // Collect unique educator IDs
+    const ids = [...new Set(packages.map(p => {
+      try {
+        if (p.educatorId && p.educatorId._id) return p.educatorId._id.toString();
+        if (p.educatorId) return p.educatorId.toString();
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }).filter(Boolean))];
+
+    if (ids.length === 0) return packages;
+
+    const profiles = await EducatorProfile.find({ userId: { $in: ids } }).select('userId name fullName bio hourlyRate img subjects');
+    const profileMap = {};
+    profiles.forEach(pr => { profileMap[pr.userId.toString()] = pr; });
+
+    return packages.map(p => {
+      const eid = (p.educatorId && p.educatorId._id) ? p.educatorId._id.toString() : (p.educatorId ? p.educatorId.toString() : null);
+      const profile = eid ? profileMap[eid] : null;
+
+      // Ensure educatorId is an object with username/img and add name/fullName
+      const originalEducator = (p.educatorId && typeof p.educatorId === 'object') ? { ...p.educatorId } : { _id: eid };
+
+      const enrichedEducator = {
+        ...originalEducator,
+        _id: eid,
+        img: originalEducator.img || (profile ? profile.img : undefined),
+        name: profile?.name || originalEducator.name,
+        fullName: profile?.fullName || originalEducator.fullName
+      };
+
+      return {
+        ...p,
+        educatorId: enrichedEducator,
+        educatorProfile: profile ? profile.toObject() : null,
+        educatorDisplayName: profile?.fullName || profile?.name || originalEducator.username || 'Educator'
+      };
+    });
+  } catch (error) {
+    console.error('attachEducatorProfilesToPackages: Error attaching profiles', error);
+    return packages;
+  }
+};
+
 // Get all public packages (for students to browse)
 export const getPublicPackages = async (req, res, next) => {
   try {
     console.log('getPublicPackages: Starting to fetch packages...');
     
-    const { keywords, minRate, maxRate } = req.query;
+    const { keywords, minRate, maxRate, educatorId } = req.query;
     const subject = req.query.subject;
     // Build query
     const query = { isActive: true };
+    
+    // Filter by educatorId if provided
+    if (educatorId && mongoose.Types.ObjectId.isValid(educatorId)) {
+      query.educatorId = new mongoose.Types.ObjectId(educatorId);
+    }
     
     // Filter by keywords if provided
     if (keywords) {
@@ -350,8 +478,9 @@ export const getPublicPackages = async (req, res, next) => {
     console.log(`getPublicPackages: Found ${packages.length} packages`);
     
     // Calculate actual ratings from reviews
-    const packagesWithRatings = await calculatePackageRatings(packages);
-    
+    let packagesWithRatings = await calculatePackageRatings(packages);
+    packagesWithRatings = await attachEducatorProfilesToPackages(packagesWithRatings);
+
     console.log('getPublicPackages: Packages with ratings calculated, sending response');
     res.status(200).json(packagesWithRatings);
   } catch (error) {
@@ -374,15 +503,18 @@ export const getRecommendedPackages = async (req, res, next) => {
         .limit(8);
       
       // Calculate actual ratings from reviews
-      const packagesWithRatings = await calculatePackageRatings(packages);
-      
+      let packagesWithRatings = await calculatePackageRatings(packages);
+      packagesWithRatings = await attachEducatorProfilesToPackages(packagesWithRatings);
+
       const transformedPackages = packagesWithRatings.map(pkg => ({
         _id: pkg._id,
         title: pkg.title,
         description: pkg.description,
         tutor: {
           username: pkg.educatorId?.username || 'Unknown Tutor',
-          img: pkg.educatorId?.img || '/img/noavatar.jpg'
+          img: pkg.educatorId?.img || '/img/noavatar.jpg',
+          name: pkg.educatorId?.name || pkg.educatorProfile?.name || undefined,
+          fullName: pkg.educatorId?.fullName || pkg.educatorProfile?.fullName || undefined
         },
         rating: pkg.rating || 0,
         totalReviews: pkg.totalReviews || 0,
@@ -395,104 +527,10 @@ export const getRecommendedPackages = async (req, res, next) => {
       return res.status(200).json({ packages: transformedPackages });
     }
 
-    // Try AI-powered recommendations first
-    try {
-      const aiRecommendationService = (await import("../services/ai/aiRecommendationService.js")).default;
-      const aiResult = await aiRecommendationService.getRecommendations(
-        studentId,
-        {
-          query: "",
-          algorithm: "hybrid",
-          limit: 8
-        }
-      );
-
-      if (aiResult && aiResult.recommendations && aiResult.recommendations.length > 0) {
-        // Get full package details for AI recommendations
-        const aiPackageIds = aiResult.recommendations.map(pkg => {
-          // Handle both _id and packageId formats
-          const id = pkg._id || pkg.packageId || pkg.package_id;
-          if (!id) return null;
-          
-          // Convert to ObjectId if it's a valid MongoDB ObjectId string
-          const idStr = id.toString();
-          if (mongoose.Types.ObjectId.isValid(idStr) && idStr.length === 24) {
-            return new mongoose.Types.ObjectId(idStr);
-          }
-          
-          // Try to convert anyway (for compatibility)
-          try {
-            return new mongoose.Types.ObjectId(idStr);
-          } catch (e) {
-            return null;
-          }
-        }).filter(id => id !== null);
-        
-        if (aiPackageIds.length === 0) {
-          throw new Error('No valid package IDs from ML recommendations');
-        }
-        
-        // Fetch complete package details from database
-        const aiPackages = await Package.find({ _id: { $in: aiPackageIds } })
-          .populate('educatorId', 'username img subjects')
-          .lean();
-
-        if (aiPackages && aiPackages.length > 0) {
-          // Calculate actual ratings from reviews
-          const aiPackagesWithRatings = await calculatePackageRatings(aiPackages);
-          
-          // Transform AI recommendations to match frontend format
-          const transformedPackages = aiPackagesWithRatings.map(pkg => ({
-            _id: pkg._id,
-            title: pkg.title,
-            description: pkg.description,
-            tutor: {
-              username: pkg.educatorId?.username || 'Unknown Tutor',
-              img: pkg.educatorId?.img || '/img/noavatar.jpg',
-              subjects: pkg.educatorId?.subjects || []
-            },
-            rating: pkg.rating || 0,
-            totalReviews: pkg.totalReviews || 0,
-            languages: pkg.languages || ['English'],
-            image: pkg.thumbnail || pkg.image || '/img/course-default.jpg',
-            price: pkg.rate || pkg.price,
-            subjects: pkg.subjects || [],
-            level: pkg.level || 'beginner',
-            totalOrders: pkg.totalOrders || 0,
-            isPersonalized: true,
-            aiScore: aiResult.recommendations.find(r => {
-              const recId = (r._id || r.packageId || r.package_id || '').toString();
-              return recId === pkg._id.toString();
-            })?.score || aiResult.recommendations.find(r => {
-              const recId = (r._id || r.packageId || r.package_id || '').toString();
-              return recId === pkg._id.toString();
-            })?.aiScore || 0,
-            algorithm: aiResult.algorithm
-          }));
-
-          console.log(`AI recommendations found: ${transformedPackages.length} packages`);
-          
-          return res.status(200).json({ 
-            packages: transformedPackages,
-            isPersonalized: true,
-            source: 'ai',
-            algorithm: aiResult.algorithm,
-            message: `AI-powered recommendations using ${aiResult.algorithm} algorithm`
-          });
-        }
-      }
-    } catch (aiError) {
-      console.log('AI recommendation service failed, falling back to traditional recommendations:', aiError.message);
-    }
-    
-    // Get student preferences and behavior for personalized recommendations
+    // Get student preferences for basic personalized recommendations
     const studentPreferences = await getUserPreferences(studentId);
-    const studentBehavior = await getUserBehavior(studentId);
     
     console.log('Student Preferences:', studentPreferences);
-    console.log('Student Behavior:', studentBehavior);
-    
-    // OPTIMIZED: Build STRICT personalized query with high relevance filtering
     let personalizedQuery = { isActive: true };
     let hasPersonalizedFilters = false;
     
@@ -540,95 +578,50 @@ export const getRecommendedPackages = async (req, res, next) => {
       console.log(`Found ${personalizedPackages.length} potential personalized packages`);
     }
     
-    // OPTIMIZED: Apply STRICT filtering based on personalization scores
+    // Get personalized packages based on subjects
     if (personalizedPackages.length > 0) {
-      // Calculate personalization scores with higher thresholds
-      const scoredPackages = personalizedPackages.map(pkg => ({
-        ...pkg.toObject(),
-        personalizationScore: calculatePersonalizationScore(pkg, studentPreferences, studentBehavior),
+      // Calculate actual ratings from reviews
+      let packagesWithRatings = await calculatePackageRatings(personalizedPackages);
+      packagesWithRatings = await attachEducatorProfilesToPackages(packagesWithRatings);
+      
+      // Transform to frontend format
+      const transformedPackages = packagesWithRatings.slice(0, 8).map(pkg => ({
+        _id: pkg._id,
+        title: pkg.title,
+        description: pkg.description,
+        tutor: {
+          username: pkg.educatorId?.username || 'Unknown Tutor',
+          img: pkg.educatorId?.img || '/img/noavatar.jpg',
+          name: pkg.educatorId?.name || pkg.educatorProfile?.name || undefined,
+          fullName: pkg.educatorId?.fullName || pkg.educatorProfile?.fullName || undefined,
+          subjects: pkg.educatorId?.subjects || []
+        },
+        rating: pkg.rating || 0,
+        totalReviews: pkg.totalReviews || 0,
+        languages: pkg.languages || ['English'],
+        image: pkg.thumbnail || '/img/course-default.jpg',
+        price: pkg.rate,
+        subjects: pkg.subjects || [],
+        level: pkg.level || 'beginner',
+        totalOrders: pkg.totalOrders || 0,
         isPersonalized: true
       }));
       
-      // Sort by personalization score (highest first)
-      scoredPackages.sort((a, b) => b.personalizationScore - a.personalizationScore);
-      
-      // STRICT FILTERING: Only keep packages with high relevance scores
-      const highRelevancePackages = scoredPackages.filter(pkg => {
-        // Must have a minimum score to be considered relevant
-        const minScore = 30; // Increased threshold
-        const hasSubjectMatch = pkg.subjects && pkg.subjects.some(subject => 
-          studentPreferences.subjects.some(pref => 
-            subject.toLowerCase().includes(pref.toLowerCase()) ||
-            pref.toLowerCase().includes(subject.toLowerCase())
-          )
-        );
-        
-        return pkg.personalizationScore >= minScore || hasSubjectMatch;
+      return res.status(200).json({ 
+        packages: transformedPackages,
+        isPersonalized: true,
+        studentPreferences: studentPreferences.subjects,
+        totalFound: personalizedPackages.length,
+        message: `Found ${transformedPackages.length} recommendations based on your interests: ${studentPreferences.subjects.join(', ')}`
       });
-      
-      console.log(`Filtered to ${highRelevancePackages.length} high-relevance packages`);
-      console.log('High-relevance packages:', highRelevancePackages.map(p => ({
-        title: p.title,
-        subjects: p.subjects,
-        score: p.personalizationScore
-      })));
-      
-      // If we have high-relevance packages, return them
-      if (highRelevancePackages.length > 0) {
-        // Calculate actual ratings from reviews
-        const packagesWithRatings = await calculatePackageRatings(highRelevancePackages);
-        
-        // Transform to frontend format
-        const transformedPackages = packagesWithRatings.slice(0, 8).map(pkg => ({
-          _id: pkg._id,
-          title: pkg.title,
-          description: pkg.description,
-          tutor: {
-            username: pkg.educatorId?.username || 'Unknown Tutor',
-            img: pkg.educatorId?.img || '/img/noavatar.jpg',
-            subjects: pkg.educatorId?.subjects || []
-          },
-          rating: pkg.rating || 0,
-          totalReviews: pkg.totalReviews || 0,
-          languages: pkg.languages || ['English'],
-          image: pkg.thumbnail || '/img/course-default.jpg',
-          price: pkg.rate,
-          subjects: pkg.subjects || [],
-          level: pkg.level || 'beginner',
-          totalOrders: pkg.totalOrders || 0,
-          isPersonalized: true,
-          personalizationScore: pkg.personalizationScore
-        }));
-        
-        console.log('Returning high-relevance personalized packages:', transformedPackages.map(p => ({
-          title: p.title,
-          subjects: p.subjects,
-          score: p.personalizationScore
-        })));
-        
-        return res.status(200).json({ 
-          packages: transformedPackages,
-          isPersonalized: true,
-          studentPreferences: studentPreferences.subjects,
-          totalFound: highRelevancePackages.length,
-          message: `Found ${transformedPackages.length} highly relevant recommendations based on your interests: ${studentPreferences.subjects.join(', ')}`
-        });
-      }
     }
     
-    // If no high-relevance results, try broader matching with strict filtering
-    console.log('No high-relevance matches found, trying broader matching with strict filtering...');
-    
-    let broaderQuery = { isActive: true };
-    let broaderFilters = [];
-    
-    // Try broader subject matching with word-level matching
+    // If no personalized results, try broader subject matching
     if (studentPreferences.subjects && studentPreferences.subjects.length > 0) {
       const broaderSubjectQueries = [];
       
       studentPreferences.subjects.forEach(subject => {
         const cleanSubject = subject.toLowerCase().trim();
-        // Split compound subjects (e.g., "Art & Design" -> ["art", "design"])
         const subjectWords = cleanSubject.split(/[\s&,]+/).filter(word => word.length > 2);
         
         subjectWords.forEach(word => {
@@ -640,128 +633,79 @@ export const getRecommendedPackages = async (req, res, next) => {
         });
       });
       
-      broaderFilters.push(...broaderSubjectQueries);
-    }
-    
-    // Add search term matching only if terms are highly relevant
-    if (studentBehavior.commonSearchTerms && studentBehavior.commonSearchTerms.length > 0) {
-      const relevantSearchTerms = studentBehavior.commonSearchTerms.filter(term => {
-        // Only include search terms that are related to student's subjects
-        return studentPreferences.subjects.some(subject => 
-          term.toLowerCase().includes(subject.toLowerCase()) ||
-          subject.toLowerCase().includes(term.toLowerCase())
-        );
-      });
-      
-      relevantSearchTerms.forEach(term => {
-        if (term.length > 2) {
-          broaderFilters.push(
-            { title: { $regex: term, $options: 'i' } },
-            { desc: { $regex: term, $options: 'i' } }
-          );
-        }
-      });
-    }
-    
-    if (broaderFilters.length > 0) {
-      broaderQuery.$or = broaderFilters;
-      
-      const broaderPackages = await Package.find(broaderQuery)
-        .populate('educatorId', 'username img subjects bio rating totalSessions')
-        .sort({ rating: -1, totalOrders: -1 })
-        .limit(20);
-      
-      if (broaderPackages.length > 0) {
-        const scoredBroaderPackages = broaderPackages.map(pkg => ({
-          ...pkg.toObject(),
-          personalizationScore: calculatePersonalizationScore(pkg, studentPreferences, studentBehavior),
-          isPersonalized: true
-        }));
+      if (broaderSubjectQueries.length > 0) {
+        const broaderQuery = { isActive: true, $or: broaderSubjectQueries };
+        const broaderPackages = await Package.find(broaderQuery)
+          .populate('educatorId', 'username img subjects')
+          .sort({ rating: -1, totalOrders: -1 })
+          .limit(8);
         
-        scoredBroaderPackages.sort((a, b) => b.personalizationScore - a.personalizationScore);
-        
-        // STRICT FILTERING for broader matches too
-        const moderateRelevancePackages = scoredBroaderPackages.filter(pkg => {
-          const minScore = 20; // Lower threshold for broader matches
-          const hasSubjectMatch = pkg.subjects && pkg.subjects.some(subject => 
-            studentPreferences.subjects.some(pref => 
-              subject.toLowerCase().includes(pref.toLowerCase()) ||
-              pref.toLowerCase().includes(subject.toLowerCase())
-            )
-          );
-          
-          return pkg.personalizationScore >= minScore || hasSubjectMatch;
-        });
-        
-        if (moderateRelevancePackages.length > 0) {
-          const transformedBroaderPackages = moderateRelevancePackages.slice(0, 8).map(pkg => ({
+        if (broaderPackages.length > 0) {
+          let packagesWithRatings = await calculatePackageRatings(broaderPackages);
+          packagesWithRatings = await attachEducatorProfilesToPackages(packagesWithRatings);
+          const transformedPackages = packagesWithRatings.map(pkg => ({
             _id: pkg._id,
             title: pkg.title,
             description: pkg.desc,
             tutor: {
               username: pkg.educatorId?.username || 'Unknown Tutor',
               img: pkg.educatorId?.img || '/img/noavatar.jpg',
-              subjects: pkg.educatorId?.subjects || [],
-              rating: pkg.educatorId?.rating || 0
+              name: pkg.educatorId?.name || pkg.educatorProfile?.name || undefined,
+              fullName: pkg.educatorId?.fullName || pkg.educatorProfile?.fullName || undefined,
+              subjects: pkg.educatorId?.subjects || []
             },
-            rating: pkg.rating || 4.5,
+            rating: pkg.rating || 0,
+            totalReviews: pkg.totalReviews || 0,
             languages: pkg.languages || ['English'],
             image: pkg.thumbnail || '/img/course-default.jpg',
             price: pkg.rate,
             subjects: pkg.subjects || [],
             level: pkg.level || 'beginner',
             totalOrders: pkg.totalOrders || 0,
-            isPersonalized: true,
-            personalizationScore: pkg.personalizationScore
+            isPersonalized: true
           }));
           
-          console.log('Returning moderate-relevance broader matches:', transformedBroaderPackages.map(p => ({
-            title: p.title,
-            subjects: p.subjects,
-            score: p.personalizationScore
-          })));
-          
           return res.status(200).json({ 
-            packages: transformedBroaderPackages,
+            packages: transformedPackages,
             isPersonalized: true,
             studentPreferences: studentPreferences.subjects,
-            totalFound: moderateRelevancePackages.length,
-            message: `Found ${transformedBroaderPackages.length} related recommendations based on broader matching`
+            totalFound: broaderPackages.length,
+            message: `Found ${transformedPackages.length} related recommendations based on broader matching`
           });
         }
       }
     }
     
-    // Only as a last resort, return a limited set of general recommendations
-    console.log('No relevant matches found, returning limited general recommendations...');
-    
-    // Get only top-rated packages as fallback
+    // Fallback: return top-rated packages
     const fallbackPackages = await Package.find({ isActive: true })
       .populate('educatorId', 'username img')
       .sort({ rating: -1, totalOrders: -1 })
-      .limit(4); // Reduced limit for fallback
+      .limit(8);
     
-    const transformedFallbackPackages = fallbackPackages.map(pkg => ({
+    let packagesWithRatings = await calculatePackageRatings(fallbackPackages);
+    packagesWithRatings = await attachEducatorProfilesToPackages(packagesWithRatings);
+    const transformedPackages = packagesWithRatings.map(pkg => ({
       _id: pkg._id,
       title: pkg.title,
       description: pkg.desc,
       tutor: {
         username: pkg.educatorId?.username || 'Unknown Tutor',
-        img: pkg.educatorId?.img || '/img/noavatar.jpg'
+        img: pkg.educatorId?.img || '/img/noavatar.jpg',
+        name: pkg.educatorId?.name || pkg.educatorProfile?.name || undefined,
+        fullName: pkg.educatorId?.fullName || pkg.educatorProfile?.fullName || undefined
       },
-      rating: pkg.rating || 4.5,
+      rating: pkg.rating || 0,
+      totalReviews: pkg.totalReviews || 0,
       languages: pkg.languages || ['English'],
       image: pkg.thumbnail || '/img/course-default.jpg',
       price: pkg.rate,
+      subjects: pkg.subjects || [],
       isPersonalized: false
     }));
     
     return res.status(200).json({ 
-      packages: transformedFallbackPackages,
-      isPersonalized: false,
-      studentPreferences: studentPreferences.subjects,
-      totalFound: 0,
-      message: `No packages found matching your interests (${studentPreferences.subjects.join(', ')}). Showing limited general recommendations.`
+      packages: transformedPackages,
+      isPersonalized: false
     });
     
   } catch (error) {
@@ -770,80 +714,45 @@ export const getRecommendedPackages = async (req, res, next) => {
   }
 };
 
-// Helper function to get user preferences
+// Helper function to get user preferences (simplified without ML)
 async function getUserPreferences(studentId) {
   try {
     const User = (await import('../models/user.model.js')).default;
-    const UserInteraction = (await import('../models/userInteraction.model.js')).default;
     const Activity = (await import('../models/activity.model.js')).default;
     
     const user = await User.findById(studentId);
-    const interactions = await UserInteraction.find({ userId: studentId })
-      .populate('packageId')
+    const activities = await Activity.find({ studentId })
       .sort({ timestamp: -1 })
       .limit(100);
     
-    const activities = await Activity.find({ studentId })
-      .sort({ timestamp: -1 })
-      .limit(200);
-    
-    // Extract subjects from multiple sources with priority
+    // Extract subjects from profile and activities
     const profileSubjects = user.subjects || [];
-    const interactionSubjects = interactions
-      .map(interaction => interaction.packageId?.subjects || [])
-      .flat();
     const activitySubjects = activities
       .filter(activity => activity.subject && activity.subject !== 'general')
       .map(activity => activity.subject);
     
-    // Combine and analyze subjects with priority weighting
-    const allSubjects = [
-      ...profileSubjects.map(s => ({ subject: s, weight: 3 })), // Profile subjects get highest weight
-      ...interactionSubjects.map(s => ({ subject: s, weight: 2 })), // Interaction subjects get medium weight
-      ...activitySubjects.map(s => ({ subject: s, weight: 1 })) // Activity subjects get lowest weight
-    ];
-    
-    // Count subjects with their weights
+    // Combine subjects and get unique ones
+    const allSubjects = [...profileSubjects, ...activitySubjects];
     const subjectCounts = {};
-    allSubjects.forEach(({ subject, weight }) => {
+    allSubjects.forEach(subject => {
       if (subject && subject.trim()) {
         const cleanSubject = subject.toLowerCase().trim();
-        subjectCounts[cleanSubject] = (subjectCounts[cleanSubject] || 0) + weight;
+        subjectCounts[cleanSubject] = (subjectCounts[cleanSubject] || 0) + 1;
       }
     });
     
-    // Get top subjects by weighted count
+    // Get top subjects
     const sortedSubjects = Object.entries(subjectCounts)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 5)
       .map(([subject]) => subject);
     
-    // If no subjects found, use profile subjects or defaults
+    // Use top subjects or fallback to profile subjects or defaults
     const finalSubjects = sortedSubjects.length > 0 ? sortedSubjects : 
                          (profileSubjects.length > 0 ? profileSubjects : ['Mathematics', 'Science', 'English']);
     
-    console.log('Extracted user preferences:', {
-      profileSubjects,
-      interactionSubjects: interactionSubjects.slice(0, 5),
-      activitySubjects: activitySubjects.slice(0, 5),
-      finalSubjects,
-      subjectCounts
-    });
-    
-    // Extract price preferences
-    const pricePreferences = interactions
-      .filter(interaction => interaction.packageId?.rate)
-      .map(interaction => interaction.packageId.rate);
-    
-    const avgPrice = pricePreferences.length > 0 
-      ? pricePreferences.reduce((a, b) => a + b, 0) / pricePreferences.length 
-      : null;
-    
     return {
       subjects: finalSubjects,
-      preferredPrice: avgPrice,
-      interactionCount: interactions.length,
-      lastActivity: activities[0]?.timestamp,
       learningLevel: user.educationLevel || 'beginner',
       preferredLanguages: user.languages || ['English']
     };
@@ -852,178 +761,8 @@ async function getUserPreferences(studentId) {
     console.error('Error getting user preferences:', error);
     return {
       subjects: ['Mathematics', 'Science', 'English'],
-      preferredPrice: null,
-      interactionCount: 0,
       learningLevel: 'beginner',
       preferredLanguages: ['English']
     };
   }
-}
-
-// Helper function to get user behavior
-async function getUserBehavior(studentId) {
-  try {
-    const UserInteraction = (await import('../models/userInteraction.model.js')).default;
-    const Activity = (await import('../models/activity.model.js')).default;
-    
-    const interactions = await UserInteraction.find({ userId: studentId })
-      .populate('packageId')
-      .sort({ timestamp: -1 })
-      .limit(100);
-    
-    const activities = await Activity.find({ studentId })
-      .sort({ timestamp: -1 })
-      .limit(200);
-    
-    // Extract search patterns
-    const searchPatterns = activities
-      .filter(activity => activity.type === 'search')
-      .map(activity => activity.details?.query || '');
-    
-    // Extract common search terms
-    const searchTerms = searchPatterns
-      .filter(term => term.length > 2)
-      .map(term => term.toLowerCase());
-    
-    const termCounts = {};
-    searchTerms.forEach(term => {
-      termCounts[term] = (termCounts[term] || 0) + 1;
-    });
-    
-    const commonSearchTerms = Object.entries(termCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
-      .map(([term]) => term);
-    
-    return {
-      commonSearchTerms,
-      totalInteractions: interactions.length,
-      totalActivities: activities.length,
-      lastInteraction: interactions[0]?.timestamp
-    };
-    
-  } catch (error) {
-    console.error('Error getting user behavior:', error);
-    return {
-      commonSearchTerms: [],
-      totalInteractions: 0,
-      totalActivities: 0
-    };
-  }
-}
-
-// Helper function to calculate personalization score
-function calculatePersonalizationScore(packageItem, preferences, behavior) {
-  let score = 0;
-  
-  // SUBJECT MATCHING - HIGHEST PRIORITY (80% weight)
-  if (preferences.subjects && packageItem.subjects) {
-    const subjectMatches = preferences.subjects.filter(subject =>
-      packageItem.subjects.some(pkgSubject => 
-        pkgSubject.toLowerCase().includes(subject.toLowerCase()) ||
-        subject.toLowerCase().includes(pkgSubject.toLowerCase())
-      )
-    );
-    
-    // Also check title and description for subject matches
-    const titleDescMatches = preferences.subjects.filter(subject => {
-      const cleanSubject = subject.toLowerCase();
-      return (packageItem.title && packageItem.title.toLowerCase().includes(cleanSubject)) ||
-             (packageItem.desc && packageItem.desc.toLowerCase().includes(cleanSubject));
-    });
-    
-    const totalSubjectMatches = new Set([...subjectMatches, ...titleDescMatches]);
-    score += totalSubjectMatches.size * 80; // Much higher weight for subject matching
-    
-    console.log(`Subject matches for ${packageItem.title}:`, Array.from(totalSubjectMatches));
-  }
-  
-  // EXACT SUBJECT MATCH - BONUS POINTS
-  if (preferences.subjects && packageItem.subjects) {
-    const exactMatches = preferences.subjects.filter(subject =>
-      packageItem.subjects.some(pkgSubject => 
-        pkgSubject.toLowerCase() === subject.toLowerCase()
-      )
-    );
-    score += exactMatches.length * 50; // Higher bonus for exact matches
-  }
-  
-  // NEGATIVE SCORING for irrelevant subjects
-  if (preferences.subjects && packageItem.subjects) {
-    const irrelevantSubjects = ['chemistry', 'physics', 'mathematics', 'science', 'biology', 'oop', 'programming', 'computer science'];
-    const hasIrrelevantSubject = packageItem.subjects.some(subject => 
-      irrelevantSubjects.some(irrelevant => 
-        subject.toLowerCase().includes(irrelevant) ||
-        irrelevant.includes(subject.toLowerCase())
-      )
-    );
-    
-    if (hasIrrelevantSubject && !preferences.subjects.some(pref => 
-      packageItem.subjects.some(subject => 
-        subject.toLowerCase().includes(pref.toLowerCase()) ||
-        pref.toLowerCase().includes(subject.toLowerCase())
-      )
-    )) {
-      score -= 100; // Heavy penalty for irrelevant subjects
-      console.log(`Heavy penalty for irrelevant subject in ${packageItem.title}`);
-    }
-  }
-  
-  // Search term match (15% weight) - only if highly relevant
-  if (behavior.commonSearchTerms && packageItem.title) {
-    const relevantSearchTerms = behavior.commonSearchTerms.filter(term => {
-      // Only count search terms that are related to student's subjects
-      return preferences.subjects.some(subject => 
-        term.toLowerCase().includes(subject.toLowerCase()) ||
-        subject.toLowerCase().includes(term.toLowerCase())
-      );
-    });
-    
-    const searchMatches = relevantSearchTerms.filter(term =>
-      packageItem.title.toLowerCase().includes(term.toLowerCase()) ||
-      packageItem.desc?.toLowerCase().includes(term.toLowerCase())
-    );
-    score += searchMatches.length * 15;
-  }
-  
-  // Price preference match (3% weight)
-  if (preferences.preferredPrice && packageItem.rate) {
-    const priceDiff = Math.abs(packageItem.rate - preferences.preferredPrice);
-    const priceScore = Math.max(0, 30 - (priceDiff / preferences.preferredPrice) * 30);
-    score += priceScore;
-  }
-  
-  // Rating boost (1% weight)
-  if (packageItem.rating) {
-    score += packageItem.rating * 3;
-  }
-  
-  // Popularity boost (1% weight)
-  if (packageItem.totalOrders) {
-    score += Math.min(packageItem.totalOrders / 10, 5);
-  }
-  
-  // Learning level match bonus
-  if (preferences.learningLevel === 'beginner' && packageItem.level === 'beginner') {
-    score += 10;
-  } else if (preferences.learningLevel === 'advanced' && packageItem.level === 'advanced') {
-    score += 10;
-  }
-  
-  // FINAL VALIDATION: Must have at least one subject match to be considered relevant
-  const hasAnySubjectMatch = preferences.subjects && packageItem.subjects && 
-    preferences.subjects.some(subject =>
-      packageItem.subjects.some(pkgSubject => 
-        pkgSubject.toLowerCase().includes(subject.toLowerCase()) ||
-        subject.toLowerCase().includes(pkgSubject.toLowerCase())
-      )
-    );
-  
-  if (!hasAnySubjectMatch) {
-    score = Math.max(0, score - 50); // Reduce score if no subject match
-  }
-  
-  console.log(`Final personalization score for ${packageItem.title}: ${score}`);
-  
-  return score;
 }

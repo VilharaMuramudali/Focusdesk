@@ -52,49 +52,26 @@ export default function MyLearning() {
 
       // Fetch activity heatmap data
       const activityResponse = await newRequest.get('/learning/activity');
-      setActivityData(activityResponse.data || {});
+      const activityDataFromAPI = activityResponse.data || {};
+      setActivityData(activityDataFromAPI);
 
       setLoading(false);
     } catch (error) {
       console.error('Error fetching learning data:', error);
-      // Set mock data for development
+      // Set empty data on error
       setLearningStats({
-        totalHours: 16,
-        topicsLearned: 10,
-        totalSessions: 3,
-        completionRate: 97
+        totalHours: 0,
+        topicsLearned: 0,
+        totalSessions: 0,
+        completionRate: 0
       });
       setLearningTrends({
-        studyHours: [5, 8, 12, 15, 18, 16],
-        topicsCompleted: [2, 4, 6, 8, 10, 12],
-        growth: 25
+        studyHours: [],
+        topicsCompleted: [],
+        growth: 0
       });
-      setRecommendations([
-        {
-          id: 1,
-          title: "Machine Learning Fundamentals",
-          description: "Based on your progress in Data Science",
-          type: "recommended"
-        },
-        {
-          id: 2,
-          title: "React Advanced Patterns",
-          description: "Recommended next step after JavaScript",
-          type: "recommended"
-        },
-        {
-          id: 3,
-          title: "Python for Data Analysis",
-          description: "Build on your programming skills",
-          type: "recommended"
-        },
-        {
-          id: 4,
-          title: "Advanced Mathematics",
-          description: "Strengthen your foundation",
-          type: "recommended"
-        }
-      ]);
+      setRecommendations([]);
+      setActivityData({});
       setLoading(false);
     }
   };
@@ -102,15 +79,27 @@ export default function MyLearning() {
   const generateActivityGrid = () => {
     const cells = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const sevenMonthsAgo = new Date();
     sevenMonthsAgo.setMonth(today.getMonth() - 7);
+    sevenMonthsAgo.setDate(1);
+    sevenMonthsAgo.setHours(0, 0, 0, 0);
     
-    // Generate 28 weeks (7 months) × 7 days
-    for (let week = 0; week < 28; week++) {
+    const totalDays = Math.ceil((today - sevenMonthsAgo) / (1000 * 60 * 60 * 24)) + 1;
+    const totalWeeks = Math.ceil(totalDays / 7);
+    
+    // Generate grid - fill by columns (weeks) with 7 rows (days)
+    for (let week = 0; week < totalWeeks; week++) {
       for (let day = 0; day < 7; day++) {
-        // Calculate the date for this cell
+        const dayOffset = (week * 7) + day;
         const cellDate = new Date(sevenMonthsAgo);
-        cellDate.setDate(sevenMonthsAgo.getDate() + (week * 7) + day);
+        cellDate.setDate(sevenMonthsAgo.getDate() + dayOffset);
+        
+        // Stop if we've gone past today
+        if (cellDate > today) {
+          continue;
+        }
         
         // Format date as YYYY-MM-DD to match backend data
         const dateKey = cellDate.toISOString().split('T')[0];
@@ -142,8 +131,8 @@ export default function MyLearning() {
     return (
       <div className="my-learning-container">
         <SharedHeaderBanner 
-          title="My Learning"
-          subtitle="Track your learning progress and achievements"
+          title="Track your learning progress and achievements"
+          subtitle=""
         />
         <div className="loading-container">
           <LoadingSpinner />
@@ -155,8 +144,8 @@ export default function MyLearning() {
   return (
     <div className="my-learning-container">
       <SharedHeaderBanner 
-        title="My Sessions"
-        subtitle="Track your learning progress and achievements"
+        title="Track your learning progress and achievements"
+        subtitle=""
       />
       
       <div className="learning-dashboard">
@@ -198,7 +187,7 @@ export default function MyLearning() {
             </div>
             <div className="stat-info">
               <h3>Topic Learned</h3>
-              <p>Time Spent on the Portal</p>
+              <p>Topic you learnt</p>
             </div>
           </div>
 
@@ -218,7 +207,7 @@ export default function MyLearning() {
             </div>
             <div className="stat-info">
               <h3>Total Sessions</h3>
-              <p>Time Spent on the Portal</p>
+              <p>Completed Sessions</p>
             </div>
           </div>
 
@@ -238,7 +227,7 @@ export default function MyLearning() {
             </div>
             <div className="stat-info">
               <h3>Completion Rate</h3>
-              <p>Time Spent on the Portal</p>
+              <p>Completion Rate of Learning</p>
             </div>
           </div>
         </div>
@@ -259,6 +248,11 @@ export default function MyLearning() {
                 <span>More</span>
               </div>
             </div>
+            {Object.keys(activityData).length === 0 && (
+              <div className="empty-activity-message">
+                No activity recorded yet. Complete sessions to see your activity heatmap!
+              </div>
+            )}
              <div className="activity-heatmap">
               <div className="heatmap-months">
                 {(() => {
@@ -278,6 +272,11 @@ export default function MyLearning() {
               </div>
               <div className="heatmap-footer">
                 <span className="active-time">Active time</span>
+                {Object.keys(activityData).length > 0 && (
+                  <span className="active-days-count">
+                    {Object.keys(activityData).length} active {Object.keys(activityData).length === 1 ? 'day' : 'days'}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -376,17 +375,23 @@ export default function MyLearning() {
               <h3>Course Recommendations</h3>
             </div>
             <div className="recommendations-list">
-              {(recommendations || []).map((recommendation) => (
-                <div key={recommendation.id} className="recommendation-card">
-                  <div className="recommendation-icon">
-                    <FaBook />
+              {(recommendations || []).length > 0 ? (
+                recommendations.map((recommendation) => (
+                  <div key={recommendation.id} className="recommendation-card">
+                    <div className="recommendation-icon">
+                      <FaBook />
+                    </div>
+                    <div className="recommendation-content">
+                      <h4>{recommendation.title}</h4>
+                      <p>{recommendation.description}</p>
+                    </div>
                   </div>
-                  <div className="recommendation-content">
-                    <h4>{recommendation.title}</h4>
-                    <p>{recommendation.description}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <p>No recommendations available yet. Start learning to get personalized course suggestions!</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

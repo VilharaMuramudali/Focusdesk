@@ -42,47 +42,57 @@ export const CurrencyProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         
-        // Using exchangerate.host API (free, no API key needed)
-        // This API uses USD as base currency
-        const response = await axios.get('https://api.exchangerate.host/latest?base=USD', {
-          timeout: 5000
-        });
-        
-        // Normalise a few possible API response shapes
-        const data = response && response.data ? response.data : response;
-        let fetchedRates = null;
+        // Try multiple free APIs in order of preference
+        const apis = [
+          {
+            url: 'https://open.er-api.com/v6/latest/USD',
+            parseRates: (data) => data.rates
+          },
+          {
+            url: 'https://api.exchangerate-api.com/v4/latest/USD',
+            parseRates: (data) => data.rates
+          },
+          {
+            url: 'https://api.exchangerate.host/latest?base=USD',
+            parseRates: (data) => data.rates
+          }
+        ];
 
-        if (data && typeof data === 'object') {
-          if (data.rates && typeof data.rates === 'object') {
-            fetchedRates = data.rates;
-          } else if (data.conversion_rates && typeof data.conversion_rates === 'object') {
-            // some free APIs return `conversion_rates` key
-            fetchedRates = data.conversion_rates;
-          } else if (data.quotes && typeof data.quotes === 'object') {
-            // some APIs return `quotes` (e.g., USDXXX keys)
-            // transform USDXXX -> XXX: value
-            fetchedRates = Object.keys(data.quotes).reduce((acc, k) => {
-              // quotes like USDLKR -> we strip USD
-              const code = k.replace(/^USD/, '');
-              acc[code] = data.quotes[k];
-              return acc;
-            }, {});
+        let fetchedRates = null;
+        let lastError = null;
+
+        // Try each API until one succeeds
+        for (const api of apis) {
+          try {
+            const response = await axios.get(api.url, { timeout: 5000 });
+            const data = response.data;
+            
+            if (data && typeof data === 'object') {
+              fetchedRates = api.parseRates(data);
+              
+              if (fetchedRates && typeof fetchedRates === 'object' && Object.keys(fetchedRates).length > 0) {
+                console.log(`Successfully fetched rates from ${api.url}`);
+                break; // Success, exit the loop
+              }
+            }
+          } catch (apiError) {
+            lastError = apiError;
+            console.warn(`Failed to fetch from ${api.url}:`, apiError.message);
+            continue; // Try next API
           }
         }
 
         if (!fetchedRates || Object.keys(fetchedRates).length === 0) {
-          console.error('Unexpected exchange API response shape:', response);
-          throw new Error('Invalid response format');
+          throw lastError || new Error('All exchange rate APIs failed');
         }
 
         // Ensure USD is present as base 1
         const allRates = { USD: 1, ...fetchedRates };
-        if (!allRates.USD) allRates.USD = fetchedRates['USD'] || 1;
         setRates(allRates);
-        console.log('Exchange rates fetched successfully:', allRates);
+        console.log('Exchange rates loaded successfully');
       } catch (err) {
-        console.error('Error fetching exchange rates:', err);
-        setError(err.response?.data?.message || err.message || String(err));
+        console.warn('Could not fetch live exchange rates, using fallback values');
+        setError('Using offline rates');
         
         // Fallback rates (approximate as of common values)
         const fallbackRates = {
@@ -100,7 +110,6 @@ export const CurrencyProvider = ({ children }) => {
           MYR: 4.72      // Approximate: 1 USD = 4.72 MYR
         };
         setRates(fallbackRates);
-        console.warn('Using fallback exchange rates');
       } finally {
         setLoading(false);
       }

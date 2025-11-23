@@ -71,14 +71,24 @@ function MyBookings() {
   };
 
   const handleReviewSession = (session, booking, sessionIndex) => {
-    setSelectedSessionForReview({
+    // Validate that we have all required data before opening modal
+    if (!booking._id || !booking.educatorId || !booking.packageId) {
+      console.error('Missing booking data:', { booking });
+      showErrorNotification('Unable to open review form. Missing booking information.');
+      return;
+    }
+
+    const sessionData = {
       ...session,
       _id: `${booking._id}_session_${sessionIndex}`, // Create unique session ID
       educator: booking.educatorId,
       package: booking.packageId,
       bookingId: booking._id,
       sessionIndex: sessionIndex
-    });
+    };
+
+    console.log('Opening review modal with data:', sessionData);
+    setSelectedSessionForReview(sessionData);
     setShowReviewModal(true);
   };
 
@@ -140,7 +150,7 @@ function MyBookings() {
           <div className="no-bookings-content">
             <FaCalendarAlt className="no-bookings-icon" />
             <h3>No bookings yet</h3>
-            <p>You haven't made any bookings yet. Start by exploring available packages!</p>
+            <p>You haven`t made any bookings yet. Start by exploring available packages!</p>
           </div>
         </div>
       ) : (
@@ -276,7 +286,7 @@ function MyBookings() {
       )}
 
       {/* Review Modal */}
-      {showReviewModal && selectedSessionForReview && (
+      {showReviewModal && selectedSessionForReview && selectedSessionForReview.educator && selectedSessionForReview.package && (
         <ReviewModal
           isOpen={showReviewModal}
           onClose={() => {

@@ -212,6 +212,30 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("chat-message", { userId, message, file, fileName });
   });
 
+  // Whiteboard events
+  socket.on("whiteboard-draw", ({ roomId, drawing }) => {
+    socket.to(roomId).emit("whiteboard-draw", { drawing });
+  });
+
+  socket.on("whiteboard-clear", ({ roomId, userId }) => {
+    socket.to(roomId).emit("whiteboard-clear", { userId });
+  });
+
+  // Recording status
+  socket.on("recording-status", ({ roomId, isRecording, userId }) => {
+    socket.to(roomId).emit("recording-status", { isRecording, userId });
+  });
+
+  // Hand raise
+  socket.on("hand-raise", ({ roomId, userId, raised }) => {
+    socket.to(roomId).emit("hand-raise", { userId, raised });
+  });
+
+  // Reactions
+  socket.on("reaction", ({ roomId, reaction }) => {
+    socket.to(roomId).emit("reaction", { reaction });
+  });
+
   // Handle disconnection
   socket.on("disconnect", () => {
     const userId = socket.userId;

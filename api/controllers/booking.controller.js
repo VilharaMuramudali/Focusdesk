@@ -83,7 +83,8 @@ export const getEducatorBookings = async (req, res, next) => {
     const bookings = await Booking.find(query)
       .populate('studentId', 'username img email')
       .populate('packageId', 'title thumbnail')
-      .sort({ 'sessions.date': 1 });
+      .sort({ 'sessions.date': 1 })
+      .lean();
 
     res.status(200).json(bookings);
   } catch (error) {
@@ -107,9 +108,32 @@ export const getStudentBookings = async (req, res, next) => {
     const bookings = await Booking.find(query)
       .populate('educatorId', 'username img')
       .populate('packageId', 'title thumbnail')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.status(200).json(bookings);
+    // Get educator profiles to fetch full names
+    const EducatorProfile = await import('../models/educatorProfile.model.js');
+    const educatorIds = bookings.map(b => b.educatorId?._id).filter(Boolean);
+    const educatorProfiles = await EducatorProfile.default.find({ userId: { $in: educatorIds } })
+      .select('userId fullName name')
+      .lean();
+    
+    // Create a map of userId to educator profile
+    const profileMap = {};
+    educatorProfiles.forEach(profile => {
+      profileMap[profile.userId.toString()] = profile;
+    });
+
+    // Add full names to bookings
+    const bookingsWithNames = bookings.map(booking => {
+      if (booking.educatorId) {
+        const profile = profileMap[booking.educatorId._id.toString()];
+        booking.educatorId.fullName = profile?.fullName || profile?.name || null;
+      }
+      return booking;
+    });
+
+    res.status(200).json(bookingsWithNames);
   } catch (error) {
     console.error("Error fetching student bookings:", error);
     next(createError(500, "Failed to fetch bookings"));
@@ -172,17 +196,37 @@ export const getStudentSessions = async (req, res, next) => {
     const bookings = await Booking.find(query)
       .populate('educatorId', 'username img email')
       .populate('packageId', 'title description thumbnail')
-      .sort({ 'sessions.date': 1 });
+      .sort({ 'sessions.date': 1 })
+      .lean();
+
+    // Get educator profiles to fetch full names
+    const EducatorProfile = await import('../models/educatorProfile.model.js');
+    const educatorIds = bookings.map(b => b.educatorId?._id).filter(Boolean);
+    const educatorProfiles = await EducatorProfile.default.find({ userId: { $in: educatorIds } })
+      .select('userId fullName name')
+      .lean();
+    
+    // Create a map of userId to educator profile
+    const profileMap = {};
+    educatorProfiles.forEach(profile => {
+      profileMap[profile.userId.toString()] = profile;
+    });
 
     // Transform bookings into sessions format
     const sessions = [];
     bookings.forEach(booking => {
+      const profile = booking.educatorId ? profileMap[booking.educatorId._id.toString()] : null;
+      const educatorWithName = booking.educatorId ? {
+        ...booking.educatorId,
+        fullName: profile?.fullName || profile?.name || null
+      } : null;
+
       booking.sessions.forEach(session => {
         sessions.push({
           _id: booking._id,
           sessionDate: session.date,
           duration: session.duration || 60,
-          tutor: booking.educatorId,
+          tutor: educatorWithName,
           package: booking.packageId,
           status: booking.status
         });
@@ -208,7 +252,8 @@ export const getBookingById = async (req, res, next) => {
     const booking = await Booking.findById(bookingId)
       .populate('studentId', 'username img email')
       .populate('educatorId', 'username img email')
-      .populate('packageId', 'title description thumbnail');
+      .populate('packageId', 'title description thumbnail')
+      .lean();
 
     if (!booking) {
       return next(createError(404, "Booking not found"));
@@ -218,6 +263,17 @@ export const getBookingById = async (req, res, next) => {
     if (booking.studentId._id.toString() !== userId && 
         booking.educatorId._id.toString() !== userId) {
       return next(createError(403, "Access denied"));
+    }
+
+    // Get educator profile for full name
+    if (booking.educatorId) {
+      const EducatorProfile = await import('../models/educatorProfile.model.js');
+      const profile = await EducatorProfile.default.findOne({ userId: booking.educatorId._id })
+        .select('fullName name')
+        .lean();
+      if (profile) {
+        booking.educatorId.fullName = profile.fullName || profile.name || null;
+      }
     }
 
     res.status(200).json(booking);
@@ -320,6 +376,19 @@ export const getStudentTransactions = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Get educator profiles to fetch full names
+    const EducatorProfile = await import('../models/educatorProfile.model.js');
+    const educatorIds = bookings.map(b => b.educatorId?._id).filter(Boolean);
+    const educatorProfiles = await EducatorProfile.default.find({ userId: { $in: educatorIds } })
+      .select('userId fullName name')
+      .lean();
+    
+    // Create a map of userId to educator profile
+    const profileMap = {};
+    educatorProfiles.forEach(profile => {
+      profileMap[profile.userId.toString()] = profile;
+    });
+
     if (!bookings || bookings.length === 0) {
       return res.status(200).json({
         success: true,
@@ -355,16 +424,24 @@ export const getStudentTransactions = async (req, res, next) => {
     const averagePurchaseValue = totalPurchases > 0 ? totalSpent / totalPurchases : 0;
 
     // Transform bookings to transaction format
-    const recentTransactions = bookings.map(booking => ({
-      _id: booking._id,
-      totalAmount: booking.totalAmount || 0,
-      status: booking.status || 'pending',
-      paymentStatus: booking.paymentStatus || 'pending',
-      createdAt: booking.createdAt,
-      educatorId: booking.educatorId,
-      packageId: booking.packageId,
-      sessions: booking.sessions || []
-    }));
+    const recentTransactions = bookings.map(booking => {
+      // Get the educator profile for full name
+      const educatorProfile = booking.educatorId ? profileMap[booking.educatorId._id.toString()] : null;
+      
+      return {
+        _id: booking._id,
+        totalAmount: booking.totalAmount || 0,
+        status: booking.status || 'pending',
+        paymentStatus: booking.paymentStatus || 'pending',
+        createdAt: booking.createdAt,
+        educatorId: booking.educatorId ? {
+          ...booking.educatorId,
+          fullName: educatorProfile?.fullName || educatorProfile?.name || null
+        } : null,
+        packageId: booking.packageId,
+        sessions: booking.sessions || []
+      };
+    });
 
     res.status(200).json({
       success: true,

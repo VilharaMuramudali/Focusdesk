@@ -1222,7 +1222,7 @@ function StudentDashboard() {
                               
                               <div className="tutor-details" style={{ marginTop: '0.75rem' }}>
                                 <div className="price" style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1a1a1a' }}>
-                                  {formatPrice(pkg.price)}
+                                  {formatPackagePrice(pkg)}
                                 </div>
                               </div>
                               
